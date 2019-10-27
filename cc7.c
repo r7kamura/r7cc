@@ -24,6 +24,21 @@ struct Token {
 // Current target.
 Token *token;
 
+char *user_input;
+
+void report_error(char *location, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  int position = location - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", position, "");
+  fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
 Token *generate_token(TokenType type, Token *current, char *string) {
   Token *token = calloc(1, sizeof(Token));
   token->type = type;
@@ -32,7 +47,9 @@ Token *generate_token(TokenType type, Token *current, char *string) {
   return token;
 }
 
-Token *tokenize(char *p) {
+Token *tokenize() {
+  char *p = user_input;
+
   Token head;
   head.next = NULL;
   Token *current = &head;
@@ -46,6 +63,8 @@ Token *tokenize(char *p) {
     } else if (isdigit(*p)) {
       current = generate_token(TOKEN_TYPE_NUMBER, current, p);
       current->value = strtol(p, &p, 10);
+    } else {
+      report_error(p, "Expected a number.");
     }
   }
 
@@ -67,7 +86,7 @@ bool at_eof() {
 
 int expect_number() {
   if (token->type != TOKEN_TYPE_NUMBER) {
-    raise_error("Expected TOKEN_TYPE_NUMBER, but not.");
+    report_error(token->string, "Expected a number.");
   }
 
   int value = token->value;
@@ -89,7 +108,8 @@ int main(int argc, char **argv) {
     raise_error("Invalid arguments count\n");
   }
 
-  token = tokenize(argv[1]);
+  user_input = argv[1];
+  token = tokenize();
 
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
@@ -102,7 +122,7 @@ int main(int argc, char **argv) {
     } else if (consume('-')) {
       printf("  sub rax, %d\n", expect_number());
     } else {
-      raise_error("Unexpected character: '%c'\n", token->string[0]);
+      report_error(token->string, "Unexpected character.");
     }
   }
 
