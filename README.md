@@ -10,6 +10,14 @@ A study for creating a C compiler in C.
 docker-compose run --rm base make
 ```
 
+### Format
+
+Code formatting by clang-format.
+
+```
+docker-compose run --rm base make format
+```
+
 ### Test
 
 ```
