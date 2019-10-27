@@ -1,3 +1,5 @@
+CFLAGS=-std=c11 -g -static
+
 cc7: cc7.c
 
 clean:
