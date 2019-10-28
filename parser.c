@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+Node *statement();
+
+Node *assign();
+
 Node *expression();
 
 Node *equality();
@@ -69,8 +73,11 @@ Token *tokenize() {
     } else if (starts_with(p, "==") || starts_with(p, "!=") || starts_with(p, "<=") || starts_with(p, ">=")) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 2);
       p += 2;
-    } else if (strchr("+-*/()<>", *p)) {
+    } else if (strchr("+-*/()<>;=", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
+      p++;
+    } else if ('a' <= *p && *p <= 'z') {
+      current = generate_token(TOKEN_TYPE_IDENTIFIER, current, p, 1);
       p++;
     } else if (isdigit(*p)) {
       current = generate_token(TOKEN_TYPE_NUMBER, current, p, 0);
@@ -137,9 +144,23 @@ Node *generate_leaf_node(int value) {
 
 // eBNF parts functions
 
-// expression = equality
+Node *statement() {
+  Node *node = expression();
+  expect(";");
+  return node;
+}
+
+// expression = equality ("=" assign)?
 Node *expression() {
-  return equality();
+  return assign();
+}
+
+Node *assign() {
+  Node *node = equality();
+  if (consume("=")) {
+    node = generate_branch_node(NODE_TYPE_ASSIGN, node, assign());
+  }
+  return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -229,5 +250,5 @@ Node *primary() {
 Node *parse(char *string) {
   user_input = string;
   token = tokenize();
-  return expression();
+  return statement();
 }

@@ -1,5 +1,6 @@
 typedef enum {
   NODE_TYPE_ADD,
+  NODE_TYPE_ASSIGN,
   NODE_TYPE_DIVIDE,
   NODE_TYPE_EQ,
   NODE_TYPE_LE,
@@ -20,9 +21,10 @@ struct Node {
 };
 
 typedef enum {
-  TOKEN_TYPE_RESERVED_SYMBOL,
-  TOKEN_TYPE_NUMBER,
   TOKEN_TYPE_EOF,
+  TOKEN_TYPE_IDENTIFIER,
+  TOKEN_TYPE_NUMBER,
+  TOKEN_TYPE_RESERVED_SYMBOL,
 } TokenType;
 
 typedef struct Token Token;
