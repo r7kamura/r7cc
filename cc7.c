@@ -68,14 +68,6 @@ char *user_input;
 
 // Utility functions
 
-void raise_error(char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
-}
-
 void report_error(char *location, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
@@ -329,7 +321,8 @@ void generate_code(Node *node) {
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    raise_error("Invalid arguments count\n");
+    fprintf(stderr, "Expected arguments count is 2, got %i\n", argc);
+    exit(1);
   }
 
   user_input = argv[1];
