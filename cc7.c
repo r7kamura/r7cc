@@ -9,10 +9,14 @@
 
 typedef enum {
   NODE_TYPE_ADD,
-  NODE_TYPE_SUBTRACT,
-  NODE_TYPE_MULTIPLY,
   NODE_TYPE_DIVIDE,
+  NODE_TYPE_EQ,
+  NODE_TYPE_LE,
+  NODE_TYPE_LT,
+  NODE_TYPE_MULTIPLY,
+  NODE_TYPE_NE,
   NODE_TYPE_NUMBER,
+  NODE_TYPE_SUBTRACT,
 } NodeType;
 
 typedef struct Node Node;
@@ -37,11 +41,18 @@ struct Token {
   Token *next;
   int value;
   char *string;
+  int length;
 };
 
 // Proto-types for recursive functions
 
 Node *expression();
+
+Node *equality();
+
+Node *relational();
+
+Node *add_or_subtract();
 
 Node *multiply_or_devide();
 
@@ -80,12 +91,17 @@ void report_error(char *location, char *fmt, ...) {
 
 // Tokenizer functions
 
-Token *generate_token(TokenType type, Token *current, char *string) {
+Token *generate_token(TokenType type, Token *current, char *string, int length) {
   Token *token = calloc(1, sizeof(Token));
   token->type = type;
   token->string = string;
+  token->length = length;
   current->next = token;
   return token;
+}
+
+bool starts_with(char *string, char *segment) {
+  return memcmp(string, segment, strlen(segment)) == 0;
 }
 
 Token *tokenize() {
@@ -98,26 +114,30 @@ Token *tokenize() {
   while (*p) {
     if (isspace(*p)) {
       p++;
-    } else if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
-      current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p);
+    } else if (starts_with(p, "==") || starts_with(p, "!=") || starts_with(p, "<=") || starts_with(p, ">=")) {
+      current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 2);
+      p += 2;
+    } else if (strchr("+-*/()<>", *p)) {
+      current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
     } else if (isdigit(*p)) {
-      current = generate_token(TOKEN_TYPE_NUMBER, current, p);
+      current = generate_token(TOKEN_TYPE_NUMBER, current, p, 0);
+      char *q = p;
       current->value = strtol(p, &p, 10);
+      current->length = p - q;
     } else {
       report_error(p, "Expected a number.");
     }
   }
 
-  generate_token(TOKEN_TYPE_EOF, current, p);
+  generate_token(TOKEN_TYPE_EOF, current, p, 0);
   return head.next;
 }
 
 // Token consumer functions
 
-bool consume(char character) {
-  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL &&
-      token->string[0] == character) {
+bool consume(char *string) {
+  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && strlen(string) == token->length && !memcmp(token->string, string, token->length)) {
     token = token->next;
     return true;
   }
@@ -128,11 +148,11 @@ bool at_eof() {
   return token->type == TOKEN_TYPE_EOF;
 }
 
-void expect(char expected_character) {
-  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && token->string[0] == expected_character) {
+void expect(char *string) {
+  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && strlen(string) == token->length && !memcmp(token->string, string, token->length)) {
     token = token->next;
   } else {
-    report_error(token->string, "Expected '%c'", expected_character);
+    report_error(token->string, "Expected '%s'", string);
   }
 }
 
@@ -165,21 +185,58 @@ Node *generate_leaf_node(int value) {
 
 // eBNF parts functions
 
-// expression = multiply_or_devide ("+" multiply_or_devide | "-" multiply_or_devide)*
+// expression = equality
 Node *expression() {
+  return equality();
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+Node *equality() {
+  Node *node = relational();
+
+  while (true) {
+    if (consume("==")) {
+      node = generate_branch_node(NODE_TYPE_EQ, node, relational());
+    } else if (consume("!=")) {
+      node = generate_branch_node(NODE_TYPE_NE, node, relational());
+    } else {
+      return node;
+    }
+  }
+}
+
+// relational = add_or_subtract ("<" add_or_subtract | "<=" add_or_subtract | ">" add_or_subtract | ">=" add_or_subtract)*
+Node *relational() {
+  Node *node = add_or_subtract();
+
+  while (true) {
+    if (consume("<")) {
+      node = generate_branch_node(NODE_TYPE_LT, node, add_or_subtract());
+    } else if (consume("<=")) {
+      node = generate_branch_node(NODE_TYPE_LE, node, add_or_subtract());
+    } else if (consume(">")) {
+      node = generate_branch_node(NODE_TYPE_LT, add_or_subtract(), node);
+    } else if (consume(">=")) {
+      node = generate_branch_node(NODE_TYPE_LE, add_or_subtract(), node);
+    } else {
+      return node;
+    }
+  }
+}
+
+// add_or_subtract = multiply_or_devide ("+" multiply_or_devide | "-" multiply_or_devide)*
+Node *add_or_subtract() {
   Node *node = multiply_or_devide();
 
   while (true) {
-    if (consume('+')) {
+    if (consume("+")) {
       node = generate_branch_node(NODE_TYPE_ADD, node, multiply_or_devide());
-    } else if (consume('-')) {
+    } else if (consume("-")) {
       node = generate_branch_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
     } else {
-      break;
+      return node;
     }
   }
-
-  return node;
 }
 
 // multiply_or_devide = unary ("*" unary | "/" unary)*
@@ -187,21 +244,19 @@ Node *multiply_or_devide() {
   Node *node = unary();
 
   while (true) {
-    if (consume('*')) {
+    if (consume("*")) {
       node = generate_branch_node(NODE_TYPE_MULTIPLY, node, unary());
-    } else if (consume('/')) {
+    } else if (consume("/")) {
       node = generate_branch_node(NODE_TYPE_DIVIDE, node, unary());
     } else {
-      break;
+      return node;
     }
   }
-
-  return node;
 }
 
 // unary = ("+" | "-")? primary
 Node *unary() {
-  if (consume('-')) {
+  if (consume("-")) {
     return generate_branch_node(NODE_TYPE_SUBTRACT, generate_leaf_node(0), primary());
   } else {
     return primary();
@@ -210,9 +265,9 @@ Node *unary() {
 
 // primary = number | "(" expression ")"
 Node *primary() {
-  if (consume('(')) {
+  if (consume("(")) {
     Node *node = expression();
-    expect(')');
+    expect(")");
     return node;
   } else {
     return generate_leaf_node(expect_number());
@@ -234,6 +289,26 @@ void generate_code(Node *node) {
   printf("  pop rax\n");
 
   switch (node->type) {
+  case NODE_TYPE_EQ:
+    printf("  cmp rax, rdi\n");
+    printf("  sete al\n");
+    printf("  movzb rax, al\n");
+    break;
+  case NODE_TYPE_NE:
+    printf("  cmp rax, rdi\n");
+    printf("  setne al\n");
+    printf("  movzb rax, al\n");
+    break;
+  case NODE_TYPE_LT:
+    printf("  cmp rax, rdi\n");
+    printf("  setl al\n");
+    printf("  movzb rax, al\n");
+    break;
+  case NODE_TYPE_LE:
+    printf("  cmp rax, rdi\n");
+    printf("  setle al\n");
+    printf("  movzb rax, al\n");
+    break;
   case NODE_TYPE_ADD:
     printf("  add rax, rdi\n");
     break;
