@@ -268,14 +268,14 @@ Node *primary() {
 
 // Code generator functions
 
-void generate_code(Node *node) {
+void generate_fragment_code(Node *node) {
   if (node->type == NODE_TYPE_NUMBER) {
     printf("  push %d\n", node->value);
     return;
   }
 
-  generate_code(node->lhs);
-  generate_code(node->rhs);
+  generate_fragment_code(node->lhs);
+  generate_fragment_code(node->rhs);
 
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -319,6 +319,15 @@ void generate_code(Node *node) {
   printf("  push rax\n");
 }
 
+void generate_entire_code(Node *node) {
+  printf(".intel_syntax noprefix\n");
+  printf(".global main\n");
+  printf("main:\n");
+  generate_fragment_code(node);
+  printf("  pop rax\n");
+  printf("  ret\n");
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "Expected arguments count is 2, got %i\n", argc);
@@ -327,14 +336,7 @@ int main(int argc, char **argv) {
 
   user_input = argv[1];
   token = tokenize();
-  Node *node = expression();
-
-  printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
-  printf("main:\n");
-  generate_code(node);
-  printf("  pop rax\n");
-  printf("  ret\n");
+  generate_entire_code(expression());
 
   return 0;
 }
