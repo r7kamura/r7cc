@@ -12,4 +12,4 @@ format:
 test: cc7
 	./test.sh
 
-.PHONY: test clean
+.PHONY: clean format test
