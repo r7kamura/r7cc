@@ -35,20 +35,6 @@ struct Token {
   int length;
 };
 
-Node *expression();
+void generate_code(Node *node);
 
-Node *equality();
-
-Node *relational();
-
-Node *add_or_subtract();
-
-Node *multiply_or_devide();
-
-Node *unary();
-
-Node *primary();
-
-extern Token *token;
-
-extern char *user_input;
+Node *parse(char *string);
