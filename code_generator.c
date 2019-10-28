@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "cc7.h"
+#include <stdio.h>
 
 void generate_fragment_code(Node *node) {
   if (node->type == NODE_TYPE_NUMBER) {

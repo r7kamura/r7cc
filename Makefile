@@ -10,7 +10,7 @@ clean:
 	rm -f cc7 *.o tmp*
 
 format:
-	clang-format -i cc7.c
+	clang-format -i *.h *.c
 
 test: cc7
 	./test.sh
