@@ -1,6 +1,6 @@
 # cc7
 
-A study for creating a C compiler in C.
+https://www.sigbus.info/compilerbook をやって C 言語を勉強しています。
 
 ## Development
 
