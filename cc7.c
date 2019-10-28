@@ -46,6 +46,8 @@ Node *expression();
 
 Node *multiply_or_devide();
 
+Node *unary();
+
 Node *primary();
 
 void expect(char);
@@ -131,21 +133,30 @@ Node *expression() {
   return node;
 }
 
-// multiply_or_devide = primary ("*" primary | "/" primary)*
+// multiply_or_devide = unary ("*" unary | "/" unary)*
 Node *multiply_or_devide() {
-  Node *node = primary();
+  Node *node = unary();
 
   while (true) {
     if (consume('*')) {
-      node = generate_branch_node(NODE_TYPE_MULTIPLY, node, primary());
+      node = generate_branch_node(NODE_TYPE_MULTIPLY, node, unary());
     } else if (consume('/')) {
-      node = generate_branch_node(NODE_TYPE_DIVIDE, node, primary());
+      node = generate_branch_node(NODE_TYPE_DIVIDE, node, unary());
     } else {
       break;
     }
   }
 
   return node;
+}
+
+// unary = ("+" | "-")? primary
+Node *unary() {
+  if (consume('-')) {
+    return generate_branch_node(NODE_TYPE_SUBTRACT, generate_leaf_node(0), primary());
+  } else {
+    return primary();
+  }
 }
 
 // primary = number | "(" expression ")"
