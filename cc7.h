@@ -4,6 +4,7 @@ typedef enum {
   NODE_TYPE_DIVIDE,
   NODE_TYPE_EQ,
   NODE_TYPE_LE,
+  NODE_TYPE_LOCAL_VARIABLE,
   NODE_TYPE_LT,
   NODE_TYPE_MULTIPLY,
   NODE_TYPE_NE,
@@ -18,6 +19,7 @@ struct Node {
   Node *lhs;
   Node *rhs;
   int value;
+  int offset;
 };
 
 typedef enum {

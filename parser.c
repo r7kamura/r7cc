@@ -142,19 +142,28 @@ Node *generate_leaf_node(int value) {
   return node;
 }
 
+Node *generate_local_variable_node(char *variable_name) {
+  Node *node = calloc(1, sizeof(Node));
+  node->type = NODE_TYPE_LOCAL_VARIABLE;
+  node->offset = (variable_name[0] - 'a' + 1) * 8;
+  return node;
+}
+
 // eBNF parts functions
 
+// statement = expression ";"
 Node *statement() {
   Node *node = expression();
   expect(";");
   return node;
 }
 
-// expression = equality ("=" assign)?
+// expression = assign
 Node *expression() {
   return assign();
 }
 
+// assign = equality ("=" assign)?
 Node *assign() {
   Node *node = equality();
   if (consume("=")) {
@@ -236,11 +245,15 @@ Node *unary() {
   }
 }
 
-// primary = number | "(" expression ")"
+// primary = number | identifier | "(" expression ")"
 Node *primary() {
   if (consume("(")) {
     Node *node = expression();
     expect(")");
+    return node;
+  } else if (token->type == TOKEN_TYPE_IDENTIFIER) {
+    Node *node = generate_local_variable_node(token->string);
+    token = token->next;
     return node;
   } else {
     return generate_leaf_node(expect_number());
