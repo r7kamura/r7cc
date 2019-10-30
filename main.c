@@ -8,8 +8,8 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  Node *node = parse(argv[1]);
-  generate_code(node);
+  parse(argv[1]);
+  generate_code();
 
   return 0;
 }

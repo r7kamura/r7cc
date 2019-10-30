@@ -87,7 +87,7 @@ void generate_code_for_expression(Node *node) {
   printf("  push rax\n");
 }
 
-void generate_code(Node *node) {
+void generate_code() {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
@@ -95,7 +95,9 @@ void generate_code(Node *node) {
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, 208\n");
 
-  generate_code_for_expression(node);
+  for (int i = 0; statements[i]; i++) {
+    generate_code_for_expression(statements[i]);
+  }
   printf("  pop rax\n");
 
   printf("  mov rsp, rbp\n");

@@ -30,6 +30,8 @@ Token *token;
 
 char *user_input;
 
+Node *statements[100];
+
 // Utility functions
 
 void report_error(char *location, char *fmt, ...) {
@@ -151,6 +153,16 @@ Node *generate_local_variable_node(char *variable_name) {
 
 // eBNF parts functions
 
+// program = statements*
+void *program() {
+  int i = 0;
+  while (!at_eof()) {
+    statements[i] = statement();
+    i++;
+  }
+  statements[i] = NULL;
+}
+
 // statement = expression ";"
 Node *statement() {
   Node *node = expression();
@@ -260,8 +272,8 @@ Node *primary() {
   }
 }
 
-Node *parse(char *string) {
+void parse(char *string) {
   user_input = string;
   token = tokenize();
-  return statement();
+  program();
 }

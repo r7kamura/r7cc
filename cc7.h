@@ -39,6 +39,8 @@ struct Token {
   int length;
 };
 
-void generate_code(Node *node);
+void generate_code();
 
-Node *parse(char *string);
+void parse(char *string);
+
+extern Node *statements[];
