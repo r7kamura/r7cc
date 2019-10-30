@@ -51,4 +51,8 @@ assert 1 "a = 1;"
 assert 2 "a = 1; b = 2;"
 assert 3 "a = 1; b = 2; a + b;"
 
+assert 1 "foo = 1;"
+assert 1 "foo = 1; bar = 2; foo;"
+assert 2 "foo = 1; bar = 2; foo * bar;"
+
 echo OK

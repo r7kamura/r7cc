@@ -1,3 +1,19 @@
+typedef struct LocalVariable LocalVariable;
+
+struct LocalVariable {
+  // For linked list.
+  LocalVariable *next;
+
+  // Variable name. (e.g. "foo")
+  char *name;
+
+  // Variable name length. (e.g. 3)
+  int length;
+
+  // Offset from RBP. (e.g. 8, 16, 24)
+  int offset;
+};
+
 typedef enum {
   NODE_TYPE_ADD,
   NODE_TYPE_ASSIGN,
@@ -33,9 +49,17 @@ typedef struct Token Token;
 
 struct Token {
   TokenType type;
+
+  // For linked list.
   Token *next;
+
+  // Token content on number. (e.g. 1)
   int value;
+
+  // Token content on identifier or reserved symbol. (e.g. "foo")
   char *string;
+
+  // Token Length. (e.g. 3)
   int length;
 };
 

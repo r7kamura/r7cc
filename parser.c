@@ -26,6 +26,8 @@ Node *primary();
 
 // Global variables
 
+LocalVariable *local_variables;
+
 Token *token;
 
 char *user_input;
@@ -58,6 +60,14 @@ Token *generate_token(TokenType type, Token *current, char *string, int length) 
   return token;
 }
 
+bool is_alpha(char character) {
+  return 'a' <= character && character <= 'z' || 'A' <= character && character <= 'Z' || character == '_';
+}
+
+bool is_alnum(char character) {
+  return is_alpha(character) || '0' <= character && character <= '9';
+}
+
 bool starts_with(char *string, char *segment) {
   return memcmp(string, segment, strlen(segment)) == 0;
 }
@@ -78,9 +88,13 @@ Token *tokenize() {
     } else if (strchr("+-*/()<>;=", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
-    } else if ('a' <= *p && *p <= 'z') {
-      current = generate_token(TOKEN_TYPE_IDENTIFIER, current, p, 1);
+    } else if (is_alpha(*p)) {
+      char *q = p;
       p++;
+      while (is_alnum(*p)) {
+        p++;
+      }
+      current = generate_token(TOKEN_TYPE_IDENTIFIER, current, q, p - q);
     } else if (isdigit(*p)) {
       current = generate_token(TOKEN_TYPE_NUMBER, current, p, 0);
       char *q = p;
@@ -144,10 +158,31 @@ Node *generate_leaf_node(int value) {
   return node;
 }
 
-Node *generate_local_variable_node(char *variable_name) {
+LocalVariable *find_local_variable(Token *token) {
+  for (LocalVariable *local_variable = local_variables; local_variable; local_variable = local_variable->next) {
+    if (local_variable->length == token->length && !memcmp(local_variable->name, token->string, local_variable->length)) {
+      return local_variable;
+    }
+  }
+  return NULL;
+}
+
+Node *generate_local_variable_node(Token *token) {
   Node *node = calloc(1, sizeof(Node));
+
   node->type = NODE_TYPE_LOCAL_VARIABLE;
-  node->offset = (variable_name[0] - 'a' + 1) * 8;
+
+  LocalVariable *local_variable = find_local_variable(token);
+  if (!local_variable) {
+    local_variable = calloc(1, sizeof(LocalVariable));
+    local_variable->name = token->string;
+    local_variable->length = token->length;
+    local_variable->offset = local_variables ? local_variables->offset + 8 : 8;
+    local_variable->next = local_variables;
+    local_variables = local_variable;
+  }
+  node->offset = local_variable->offset;
+
   return node;
 }
 
@@ -264,7 +299,7 @@ Node *primary() {
     expect(")");
     return node;
   } else if (token->type == TOKEN_TYPE_IDENTIFIER) {
-    Node *node = generate_local_variable_node(token->string);
+    Node *node = generate_local_variable_node(token);
     token = token->next;
     return node;
   } else {
