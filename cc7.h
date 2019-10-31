@@ -38,6 +38,13 @@ struct Node {
   int offset;
 };
 
+typedef struct Statement Statement;
+
+struct Statement {
+  Statement *next;
+  Node *node;
+};
+
 typedef enum {
   TOKEN_TYPE_EOF,
   TOKEN_TYPE_IDENTIFIER,
@@ -63,8 +70,6 @@ struct Token {
   int length;
 };
 
-void generate_code();
+void generate_code(Statement *statement);
 
-void parse(char *string);
-
-extern Node *statements[];
+Statement *parse(char *string);
