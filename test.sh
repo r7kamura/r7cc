@@ -55,4 +55,7 @@ assert 1 "foo = 1;"
 assert 1 "foo = 1; bar = 2; foo;"
 assert 2 "foo = 1; bar = 2; foo * bar;"
 
+assert 1 "return 1;"
+assert 2 "return 2; return 1;"
+
 echo OK

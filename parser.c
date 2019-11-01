@@ -86,6 +86,9 @@ Token *tokenize() {
     } else if (strchr("+-*/()<>;=", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
+    } else if (!memcmp(p, "return", 6) && !is_alnum(p[6])) {
+      current = generate_token(TOKEN_TYPE_RETURN, current, p, 6);
+      p += 6;
     } else if (is_alpha(*p)) {
       char *q = p;
       p++;
@@ -200,9 +203,15 @@ Statement *program() {
   return head.next;
 }
 
-// statement = expression ";"
+// statement = "return"? expression ";"
 Node *statement() {
-  Node *node = expression();
+  Node *node;
+  if (token->type == TOKEN_TYPE_RETURN) {
+    token = token->next;
+    node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
+  } else {
+    node = expression();
+  }
   expect(";");
   return node;
 }

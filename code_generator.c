@@ -40,6 +40,13 @@ void generate_code_for_expression(Node *node) {
     generate_code_for_local_variable(node);
     generate_code_for_store();
     return;
+  case NODE_TYPE_RETURN:
+    generate_code_for_expression(node->lhs);
+    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    return;
   }
 
   generate_code_for_expression(node->lhs);
