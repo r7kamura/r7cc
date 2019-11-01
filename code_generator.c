@@ -26,6 +26,13 @@ void generate_code_for_local_variable(Node *node) {
   printf("  push rax\n");
 }
 
+void generate_code_for_return() {
+  printf("  pop rax\n");
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
+  printf("  ret\n");
+}
+
 void generate_code_for_expression(Node *node) {
   switch (node->type) {
   case NODE_TYPE_NUMBER:
@@ -42,10 +49,7 @@ void generate_code_for_expression(Node *node) {
     return;
   case NODE_TYPE_RETURN:
     generate_code_for_expression(node->lhs);
-    printf("  pop rax\n");
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
+    generate_code_for_return();
     return;
   }
 
@@ -101,13 +105,8 @@ void generate_code(Statement *statement) {
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, 208\n");
-
   for (Statement *current = statement; current; current = current->next) {
     generate_code_for_expression(current->node);
   }
-  printf("  pop rax\n");
-
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+  generate_code_for_return();
 }
