@@ -74,4 +74,10 @@ struct Token {
 
 void generate_code(Statement *statement);
 
+Token *tokenize();
+
 Statement *parse(char *string);
+
+void report_error(char *location, char *fmt, ...);
+
+char *user_input;
