@@ -32,6 +32,7 @@ typedef enum {
   NODE_TYPE_NUMBER,
   NODE_TYPE_RETURN,
   NODE_TYPE_SUBTRACT,
+  NODE_TYPE_WHILE,
 } NodeType;
 
 typedef struct Node Node;
@@ -60,6 +61,7 @@ typedef enum {
   TOKEN_TYPE_NUMBER,
   TOKEN_TYPE_RESERVED_SYMBOL,
   TOKEN_TYPE_RETURN,
+  TOKEN_TYPE_WHILE,
 } TokenType;
 
 typedef struct Token Token;

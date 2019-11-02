@@ -84,6 +84,19 @@ void generate_code_for_for(Node *node) {
   printf(".Lend%i:\n", count_end);
 }
 
+void generate_code_for_while(Node *node) {
+  int count_begin = label_counter_for_begin++;
+  int count_end = label_counter_for_end++;
+  printf(".Lbegin%i:\n", count_begin);
+  generate_code_for_expression(node->lhs);
+  printf("  pop rax\n");
+  printf("  cmp rax, 0\n");
+  printf("  je .Lend%i\n", count_end);
+  generate_code_for_expression(node->rhs);
+  printf("  jmp .Lbegin%i\n", count_begin);
+  printf(".Lend%i:\n", count_end);
+}
+
 void generate_code_for_expression(Node *node) {
   switch (node->type) {
   case NODE_TYPE_NUMBER:
@@ -114,6 +127,9 @@ void generate_code_for_expression(Node *node) {
     return;
   case NODE_TYPE_FOR:
     generate_code_for_for(node);
+    return;
+  case NODE_TYPE_WHILE:
+    generate_code_for_while(node);
     return;
   }
 
