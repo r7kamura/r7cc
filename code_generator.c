@@ -138,6 +138,11 @@ void generate_code_for_expression(Node *node) {
       generate_code_for_expression(node->rhs);
     }
     return;
+  case NODE_TYPE_BLOCK:
+    if (node->rhs) {
+      generate_code_for_expression(node->rhs);
+    }
+    return;
   }
 
   generate_code_for_expression(node->lhs);

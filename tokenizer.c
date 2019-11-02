@@ -60,7 +60,7 @@ Token *tokenize() {
     } else if (starts_with(p, "==") || starts_with(p, "!=") || starts_with(p, "<=") || starts_with(p, ">=")) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 2);
       p += 2;
-    } else if (strchr("+-*/()<>;=", *p)) {
+    } else if (strchr("+-*/()<>;={}", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
     } else if (starts_with_keyword(p, "if")) {

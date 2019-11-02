@@ -6,6 +6,8 @@
 
 Node *statement();
 
+Node *statement_block();
+
 Node *statement_expression();
 
 Node *statement_for();
@@ -135,6 +137,7 @@ Node *program() {
 //   | statement_for
 //   | statement_if
 //   | statement_while
+//   | statement_block
 //   | statement_expression
 Node *statement() {
   if (consume_token_type(TOKEN_TYPE_RETURN)) {
@@ -145,9 +148,22 @@ Node *statement() {
     return statement_if();
   } else if (consume_token_type(TOKEN_TYPE_WHILE)) {
     return statement_while();
+  } else if (consume("{")) {
+    return statement_block();
   } else {
     return statement_expression();
   }
+}
+
+// statement_block = "{" statement* "}"
+Node *statement_block() {
+  Node *node = generate_branch_node(NODE_TYPE_BLOCK, NULL, NULL);
+  Node *head = node;
+  while (!consume("}")) {
+    node->rhs = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+    node = node->rhs;
+  }
+  return head;
 }
 
 // statement_expression = expression ";"
