@@ -14,6 +14,8 @@ Node *statement_if();
 
 Node *statement_return();
 
+Node *statement_while();
+
 Node *assign();
 
 Node *expression();
@@ -135,6 +137,7 @@ Statement *program() {
 //   = statement_return
 //   | statement_for
 //   | statement_if
+//   | statement_while
 //   | statement_expression
 Node *statement() {
   if (consume_token_type(TOKEN_TYPE_RETURN)) {
@@ -143,6 +146,8 @@ Node *statement() {
     return statement_for();
   } else if (consume_token_type(TOKEN_TYPE_IF)) {
     return statement_if();
+  } else if (consume_token_type(TOKEN_TYPE_WHILE)) {
+    return statement_while();
   } else {
     return statement_expression();
   }
@@ -214,6 +219,14 @@ Node *statement_return() {
   Node *node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
   expect(";");
   return node;
+}
+
+// statement_while = "while" "(" expression ")" statement
+Node *statement_while() {
+  expect("(");
+  Node *condition = expression();
+  expect(")");
+  return generate_branch_node(NODE_TYPE_WHILE, condition, statement());
 }
 
 // expression = assign

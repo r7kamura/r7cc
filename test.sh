@@ -65,4 +65,6 @@ assert 1 "if (1) a = 1; else a = 2; return a;"
 
 assert 6 "b = 0; for (a = 0; a < 3; a = a + 1) b = b + 2; return b;"
 
+assert 3 "a = 0; while (a < 3) a = a + 1; return a;"
+
 echo OK
