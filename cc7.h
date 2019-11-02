@@ -31,6 +31,7 @@ typedef enum {
   NODE_TYPE_NE,
   NODE_TYPE_NUMBER,
   NODE_TYPE_RETURN,
+  NODE_TYPE_STATEMENT,
   NODE_TYPE_SUBTRACT,
   NODE_TYPE_WHILE,
 } NodeType;
@@ -43,13 +44,6 @@ struct Node {
   Node *rhs;
   int value;
   int offset;
-};
-
-typedef struct Statement Statement;
-
-struct Statement {
-  Statement *next;
-  Node *node;
 };
 
 typedef enum {
@@ -82,11 +76,11 @@ struct Token {
   int length;
 };
 
-void generate_code(Statement *statement);
+void generate_code(Node *node);
 
 Token *tokenize();
 
-Statement *parse(char *string);
+Node *parse(char *string);
 
 void report_error(char *location, char *fmt, ...);
 

@@ -119,18 +119,15 @@ Node *generate_local_variable_node(Token *token) {
   return node;
 }
 
-// program = statements*
-Statement *program() {
-  Statement head;
-  Statement *current = &head;
-
+// program = statements+
+Node *program() {
+  Node *head = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+  Node *node = head;
   while (!at_eof()) {
-    current->next = calloc(1, sizeof(Statement));
-    current = current->next;
-    current->node = statement();
+    node->rhs = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+    node = node->rhs;
   }
-
-  return head.next;
+  return head;
 }
 
 // statement
@@ -331,7 +328,7 @@ Node *primary() {
   }
 }
 
-Statement *parse(char *string) {
+Node *parse(char *string) {
   user_input = string;
   token = tokenize();
   return program();
