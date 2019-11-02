@@ -116,7 +116,7 @@ Statement *program() {
 }
 
 // statement = "return" expression ";"
-//   | "if" "(" expression ")" statement
+//   | "if" "(" expression ")" statement ("else" statement)?
 //   | expression ";"
 Node *statement() {
   Node *node;
@@ -127,10 +127,16 @@ Node *statement() {
   } else if (token->type == TOKEN_TYPE_IF) {
     token = token->next;
     expect("(");
-    Node *lhs = expression();
+    Node *node_if_expression = expression();
     expect(")");
-    Node *rhs = statement();
-    node = generate_branch_node(NODE_TYPE_IF, lhs, rhs);
+    Node *node_if_statement = statement();
+    Node *node_if = generate_branch_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
+    Node *node_else = NULL;
+    if (token->type == TOKEN_TYPE_ELSE) {
+      token = token->next;
+      node_else = statement();
+    }
+    node = generate_branch_node(NODE_TYPE_IF_ELSE, node_if, node_else);
   } else {
     node = expression();
     expect(";");
