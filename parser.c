@@ -115,16 +115,26 @@ Statement *program() {
   return head.next;
 }
 
-// statement = "return"? expression ";"
+// statement = "return" expression ";"
+//   | "if" "(" expression ")" statement
+//   | expression ";"
 Node *statement() {
   Node *node;
   if (token->type == TOKEN_TYPE_RETURN) {
     token = token->next;
     node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
+    expect(";");
+  } else if (token->type == TOKEN_TYPE_IF) {
+    token = token->next;
+    expect("(");
+    Node *lhs = expression();
+    expect(")");
+    Node *rhs = statement();
+    node = generate_branch_node(NODE_TYPE_IF, lhs, rhs);
   } else {
     node = expression();
+    expect(";");
   }
-  expect(";");
   return node;
 }
 

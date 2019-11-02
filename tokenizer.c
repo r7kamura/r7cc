@@ -42,6 +42,11 @@ bool starts_with(char *string, char *segment) {
   return memcmp(string, segment, strlen(segment)) == 0;
 }
 
+bool starts_with_keyword(char *string, char *segment) {
+  int length = strlen(segment);
+  return memcmp(string, segment, length) == 0 && !is_alnum(string[length]);
+}
+
 Token *tokenize() {
   char *p = user_input;
 
@@ -58,7 +63,10 @@ Token *tokenize() {
     } else if (strchr("+-*/()<>;=", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
-    } else if (starts_with(p, "return") && !is_alnum(p[6])) {
+    } else if (starts_with_keyword(p, "if")) {
+      current = generate_token(TOKEN_TYPE_IF, current, p, 2);
+      p += 2;
+    } else if (starts_with_keyword(p, "return")) {
       current = generate_token(TOKEN_TYPE_RETURN, current, p, 6);
       p += 6;
     } else if (is_alpha(*p)) {

@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void generate_code_for_expression(Node *node);
+
+int label_counter_for_end;
+
 void generate_code_for_load() {
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -33,6 +37,15 @@ void generate_code_for_return() {
   printf("  ret\n");
 }
 
+void generate_code_for_if(Node *node) {
+  printf("  pop rax\n");
+  printf("  cmp rax, 0\n");
+  int count = label_counter_for_end++;
+  printf("  je .Lend%i\n", count);
+  generate_code_for_expression(node);
+  printf(".Lend%i:", count);
+}
+
 void generate_code_for_expression(Node *node) {
   switch (node->type) {
   case NODE_TYPE_NUMBER:
@@ -50,6 +63,10 @@ void generate_code_for_expression(Node *node) {
   case NODE_TYPE_RETURN:
     generate_code_for_expression(node->lhs);
     generate_code_for_return();
+    return;
+  case NODE_TYPE_IF:
+    generate_code_for_expression(node->lhs);
+    generate_code_for_if(node->rhs);
     return;
   }
 
