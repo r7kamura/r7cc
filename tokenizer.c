@@ -58,7 +58,7 @@ Token *tokenize() {
     } else if (strchr("+-*/()<>;=", *p)) {
       current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
       p++;
-    } else if (!memcmp(p, "return", 6) && !is_alnum(p[6])) {
+    } else if (starts_with(p, "return") && !is_alnum(p[6])) {
       current = generate_token(TOKEN_TYPE_RETURN, current, p, 6);
       p += 6;
     } else if (is_alpha(*p)) {
