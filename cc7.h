@@ -17,6 +17,7 @@ struct LocalVariable {
 typedef enum {
   NODE_TYPE_ADD,
   NODE_TYPE_ASSIGN,
+  NODE_TYPE_BLOCK,
   NODE_TYPE_DIVIDE,
   NODE_TYPE_EQ,
   NODE_TYPE_FOR,
