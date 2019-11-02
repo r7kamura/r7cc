@@ -6,6 +6,14 @@
 
 Node *statement();
 
+Node *statement_expression();
+
+Node *statement_for();
+
+Node *statement_if();
+
+Node *statement_return();
+
 Node *assign();
 
 Node *expression();
@@ -28,6 +36,14 @@ Token *token;
 
 bool consume(char *string) {
   if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && strlen(string) == token->length && !memcmp(token->string, string, token->length)) {
+    token = token->next;
+    return true;
+  }
+  return false;
+}
+
+bool consume_token_type(TokenType type) {
+  if (token->type == type) {
     token = token->next;
     return true;
   }
@@ -115,32 +131,88 @@ Statement *program() {
   return head.next;
 }
 
-// statement = "return" expression ";"
-//   | "if" "(" expression ")" statement ("else" statement)?
-//   | expression ";"
+// statement
+//   = statement_return
+//   | statement_for
+//   | statement_if
+//   | statement_expression
 Node *statement() {
-  Node *node;
-  if (token->type == TOKEN_TYPE_RETURN) {
-    token = token->next;
-    node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
-    expect(";");
-  } else if (token->type == TOKEN_TYPE_IF) {
-    token = token->next;
-    expect("(");
-    Node *node_if_expression = expression();
-    expect(")");
-    Node *node_if_statement = statement();
-    Node *node_if = generate_branch_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
-    Node *node_else = NULL;
-    if (token->type == TOKEN_TYPE_ELSE) {
-      token = token->next;
-      node_else = statement();
-    }
-    node = generate_branch_node(NODE_TYPE_IF_ELSE, node_if, node_else);
+  if (consume_token_type(TOKEN_TYPE_RETURN)) {
+    return statement_return();
+  } else if (consume_token_type(TOKEN_TYPE_FOR)) {
+    return statement_for();
+  } else if (consume_token_type(TOKEN_TYPE_IF)) {
+    return statement_if();
   } else {
-    node = expression();
+    return statement_expression();
+  }
+}
+
+// statement_expression = expression ";"
+Node *statement_expression() {
+  Node *node = expression();
+  expect(";");
+  return node;
+}
+
+// statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
+Node *statement_for() {
+  expect("(");
+  Node *initialization;
+  if (consume(";")) {
+    initialization = NULL;
+  } else {
+    initialization = expression();
     expect(";");
   }
+
+  Node *condition;
+  if (consume(";")) {
+    condition = NULL;
+  } else {
+    condition = expression();
+    expect(";");
+  }
+
+  Node *afterthrough;
+  if (consume(";")) {
+    afterthrough = NULL;
+  } else {
+    afterthrough = expression();
+  }
+  expect(")");
+
+  return generate_branch_node(
+      NODE_TYPE_FOR,
+      initialization,
+      generate_branch_node(
+          NODE_TYPE_FOR_CONDITION,
+          condition,
+          generate_branch_node(
+              NODE_TYPE_FOR_AFTERTHROUGH,
+              afterthrough,
+              statement())));
+}
+
+// statement_if = "if" "(" expression ")" statement ("else" statement)?
+Node *statement_if() {
+  expect("(");
+  Node *node_if_expression = expression();
+  expect(")");
+  Node *node_if_statement = statement();
+  Node *node_if = generate_branch_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
+  Node *node_else = NULL;
+  if (token->type == TOKEN_TYPE_ELSE) {
+    token = token->next;
+    node_else = statement();
+  }
+  return generate_branch_node(NODE_TYPE_IF_ELSE, node_if, node_else);
+}
+
+// statement_return = "return" expression ";"
+Node *statement_return() {
+  Node *node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
+  expect(";");
   return node;
 }
 

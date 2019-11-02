@@ -66,6 +66,9 @@ Token *tokenize() {
     } else if (starts_with_keyword(p, "if")) {
       current = generate_token(TOKEN_TYPE_IF, current, p, 2);
       p += 2;
+    } else if (starts_with_keyword(p, "for")) {
+      current = generate_token(TOKEN_TYPE_FOR, current, p, 3);
+      p += 3;
     } else if (starts_with_keyword(p, "else")) {
       current = generate_token(TOKEN_TYPE_ELSE, current, p, 4);
       p += 4;
