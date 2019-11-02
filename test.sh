@@ -60,5 +60,7 @@ assert 2 "return 2; return 1;"
 
 assert 2 "if (1) return 2;"
 assert 3 "if (0) return 2; return 3;"
+assert 2 "if (0) a = 1; else a = 2; return a;"
+assert 1 "if (1) a = 1; else a = 2; return a;"
 
 echo OK

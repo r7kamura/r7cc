@@ -4,6 +4,7 @@
 
 void generate_code_for_expression(Node *node);
 
+int label_counter_for_else;
 int label_counter_for_end;
 
 void generate_code_for_load() {
@@ -37,13 +38,28 @@ void generate_code_for_return() {
   printf("  ret\n");
 }
 
-void generate_code_for_if(Node *node) {
+void generate_code_for_if_only(Node *node) {
+  generate_code_for_expression(node->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
   int count = label_counter_for_end++;
   printf("  je .Lend%i\n", count);
-  generate_code_for_expression(node);
+  generate_code_for_expression(node->rhs);
   printf(".Lend%i:", count);
+}
+
+void generate_code_for_if_and_else(Node *node) {
+  generate_code_for_expression(node->lhs->lhs);
+  printf("  pop rax\n");
+  printf("  cmp rax, 0\n");
+  int count_else = label_counter_for_else++;
+  int count_end = label_counter_for_end++;
+  printf("  je .Lelse%i\n", count_else);
+  generate_code_for_expression(node->lhs->rhs);
+  printf("  jmp .Lend%i\n", count_end);
+  printf(".Lelse%i:", count_else);
+  generate_code_for_expression(node->rhs);
+  printf(".Lend%i:", count_end);
 }
 
 void generate_code_for_expression(Node *node) {
@@ -64,9 +80,15 @@ void generate_code_for_expression(Node *node) {
     generate_code_for_expression(node->lhs);
     generate_code_for_return();
     return;
+  case NODE_TYPE_IF_ELSE:
+    if (node->rhs) {
+      generate_code_for_if_and_else(node);
+    } else {
+      generate_code_for_if_only(node->lhs);
+    }
+    return;
   case NODE_TYPE_IF:
-    generate_code_for_expression(node->lhs);
-    generate_code_for_if(node->rhs);
+    generate_code_for_if_only(node);
     return;
   }
 
