@@ -34,6 +34,14 @@ bool consume(char *string) {
   return false;
 }
 
+bool consume_token_type(TokenType type) {
+  if (token->type == type) {
+    token = token->next;
+    return true;
+  }
+  return false;
+}
+
 bool at_eof() {
   return token->type == TOKEN_TYPE_EOF;
 }
@@ -116,16 +124,51 @@ Statement *program() {
 }
 
 // statement = "return" expression ";"
+//   | "for" "(" expression? ";" expression? ";" expression? ")" statement
 //   | "if" "(" expression ")" statement ("else" statement)?
 //   | expression ";"
 Node *statement() {
   Node *node;
-  if (token->type == TOKEN_TYPE_RETURN) {
-    token = token->next;
+  if (consume_token_type(TOKEN_TYPE_RETURN)) {
     node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
     expect(";");
-  } else if (token->type == TOKEN_TYPE_IF) {
-    token = token->next;
+  } else if (consume_token_type(TOKEN_TYPE_FOR)) {
+    expect("(");
+    Node *initialization;
+    if (consume(";")) {
+      initialization = NULL;
+    } else {
+      initialization = expression();
+      expect(";");
+    }
+
+    Node *condition;
+    if (consume(";")) {
+      condition = NULL;
+    } else {
+      condition = expression();
+      expect(";");
+    }
+
+    Node *afterthrough;
+    if (consume(";")) {
+      afterthrough = NULL;
+    } else {
+      afterthrough = expression();
+    }
+    expect(")");
+
+    node = generate_branch_node(
+        NODE_TYPE_FOR,
+        initialization,
+        generate_branch_node(
+            NODE_TYPE_FOR_CONDITION,
+            condition,
+            generate_branch_node(
+                NODE_TYPE_FOR_AFTERTHROUGH,
+                afterthrough,
+                statement())));
+  } else if (consume_token_type(TOKEN_TYPE_IF)) {
     expect("(");
     Node *node_if_expression = expression();
     expect(")");
