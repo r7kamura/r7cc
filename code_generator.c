@@ -131,6 +131,13 @@ void generate_code_for_expression(Node *node) {
   case NODE_TYPE_WHILE:
     generate_code_for_while(node);
     return;
+  case NODE_TYPE_STATEMENT:
+    generate_code_for_expression(node->lhs);
+    if (node->rhs) {
+      printf("  pop rax\n");
+      generate_code_for_expression(node->rhs);
+    }
+    return;
   }
 
   generate_code_for_expression(node->lhs);
@@ -178,15 +185,13 @@ void generate_code_for_expression(Node *node) {
   printf("  push rax\n");
 }
 
-void generate_code(Statement *statement) {
+void generate_code(Node *node) {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, 208\n");
-  for (Statement *current = statement; current; current = current->next) {
-    generate_code_for_expression(current->node);
-  }
+  generate_code_for_expression(node);
   generate_code_for_return();
 }
