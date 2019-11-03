@@ -28,7 +28,7 @@ void generate_code_for_local_variable(Node *node) {
   }
 
   printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
+  printf("  sub rax, %d\n", node->value);
   printf("  push rax\n");
 }
 
