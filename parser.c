@@ -116,7 +116,7 @@ Node *generate_local_variable_node(Token *token) {
     local_variable->next = local_variables;
     local_variables = local_variable;
   }
-  node->offset = local_variable->offset;
+  node->value = local_variable->offset;
 
   return node;
 }

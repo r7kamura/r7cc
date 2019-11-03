@@ -44,7 +44,6 @@ struct Node {
   Node *lhs;
   Node *rhs;
   int value;
-  int offset;
 };
 
 typedef enum {
