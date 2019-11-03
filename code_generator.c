@@ -138,6 +138,33 @@ void generate_code_for_expression(Node *node) {
       generate_code_for_expression(node->rhs);
     }
     return;
+  case NODE_TYPE_FUNCTION_CALL: {
+    int label_count = label_counter++;
+    printf("  mov rax, rsp\n");
+    printf("  and rax, 15\n");
+    printf("  jnz .Lcall%i\n", label_count);
+    printf("  mov rax, 0\n");
+    printf("  call %.*s\n", node->name_length, node->name);
+    printf("  jmp .Lend%i\n", label_count);
+    printf(".Lcall%i:\n", label_count);
+    printf("  sub rsp, 8\n");
+    printf("  mov rax, 0\n");
+    printf("  call %.*s\n", node->name_length, node->name);
+    printf("  add rsp, 8\n");
+    printf(".Lend%i:\n", label_count);
+    printf("  push rax\n");
+    return;
+  }
+  case NODE_TYPE_FUNCTION_DEFINITION:
+    printf("%.*s:\n", node->name_length, node->name);
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, 208\n");
+    generate_code_for_expression(node->lhs);
+    if (node->rhs) {
+      generate_code_for_expression(node->rhs);
+    }
+    return;
   }
 
   generate_code_for_expression(node->lhs);
@@ -188,10 +215,5 @@ void generate_code_for_expression(Node *node) {
 void generate_code(Node *node) {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
-  printf("main:\n");
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");
   generate_code_for_expression(node);
-  generate_code_for_return();
 }

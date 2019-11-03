@@ -23,6 +23,8 @@ typedef enum {
   NODE_TYPE_FOR,
   NODE_TYPE_FOR_AFTERTHROUGH,
   NODE_TYPE_FOR_CONDITION,
+  NODE_TYPE_FUNCTION_CALL,
+  NODE_TYPE_FUNCTION_DEFINITION,
   NODE_TYPE_IF_ELSE,
   NODE_TYPE_IF,
   NODE_TYPE_LE,
@@ -44,6 +46,8 @@ struct Node {
   Node *lhs;
   Node *rhs;
   int value;
+  int name_length;
+  char *name;
 };
 
 typedef enum {
