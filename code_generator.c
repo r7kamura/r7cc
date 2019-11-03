@@ -4,9 +4,7 @@
 
 void generate_code_for_expression(Node *node);
 
-int label_counter_for_begin;
-int label_counter_for_else;
-int label_counter_for_end;
+int label_counter;
 
 void generate_code_for_load() {
   printf("  pop rdi\n");
@@ -43,7 +41,7 @@ void generate_code_for_if_only(Node *node) {
   generate_code_for_expression(node->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
-  int count = label_counter_for_end++;
+  int count = label_counter++;
   printf("  je .Lend%i\n", count);
   generate_code_for_expression(node->rhs);
   printf(".Lend%i:", count);
@@ -53,48 +51,45 @@ void generate_code_for_if_and_else(Node *node) {
   generate_code_for_expression(node->lhs->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
-  int count_else = label_counter_for_else++;
-  int count_end = label_counter_for_end++;
-  printf("  je .Lelse%i\n", count_else);
+  int label_count = label_counter++;
+  printf("  je .Lelse%i\n", label_count);
   generate_code_for_expression(node->lhs->rhs);
-  printf("  jmp .Lend%i\n", count_end);
-  printf(".Lelse%i:", count_else);
+  printf("  jmp .Lend%i\n", label_count);
+  printf(".Lelse%i:", label_count);
   generate_code_for_expression(node->rhs);
-  printf(".Lend%i:", count_end);
+  printf(".Lend%i:", label_count);
 }
 
 void generate_code_for_for(Node *node) {
   if (node->lhs) {
     generate_code_for_expression(node->lhs);
   }
-  int count_begin = label_counter_for_begin++;
-  int count_end = label_counter_for_end++;
-  printf(".Lbegin%i:\n", count_begin);
+  int label_count = label_counter++;
+  printf(".Lbegin%i:\n", label_count);
   if (node->rhs->lhs) {
     generate_code_for_expression(node->rhs->lhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .Lend%i\n", count_end);
+    printf("  je .Lend%i\n", label_count);
   }
   generate_code_for_expression(node->rhs->rhs->rhs);
   if (node->rhs->rhs->lhs) {
     generate_code_for_expression(node->rhs->rhs->lhs);
   }
-  printf("  jmp .Lbegin%i\n", count_begin);
-  printf(".Lend%i:\n", count_end);
+  printf("  jmp .Lbegin%i\n", label_count);
+  printf(".Lend%i:\n", label_count);
 }
 
 void generate_code_for_while(Node *node) {
-  int count_begin = label_counter_for_begin++;
-  int count_end = label_counter_for_end++;
-  printf(".Lbegin%i:\n", count_begin);
+  int label_count = label_counter++;
+  printf(".Lbegin%i:\n", label_count);
   generate_code_for_expression(node->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
-  printf("  je .Lend%i\n", count_end);
+  printf("  je .Lend%i\n", label_count);
   generate_code_for_expression(node->rhs);
-  printf("  jmp .Lbegin%i\n", count_begin);
-  printf(".Lend%i:\n", count_end);
+  printf("  jmp .Lbegin%i\n", label_count);
+  printf(".Lend%i:\n", label_count);
 }
 
 void generate_code_for_expression(Node *node) {
