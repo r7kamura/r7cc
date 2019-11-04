@@ -1,4 +1,5 @@
 #include "cc7.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +38,21 @@ Node *primary();
 LocalVariable *local_variables;
 
 Token *token;
+
+char *begin;
+
+void report_error(char *location, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  int position = location - begin;
+  fprintf(stderr, "%s\n", begin);
+  fprintf(stderr, "%*s", position, "");
+  fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
 
 bool consume(TokenType type) {
   if (token->type == type) {
@@ -336,8 +352,8 @@ Node *primary() {
   }
 }
 
-Node *parse(char *string) {
-  user_input = string;
-  token = tokenize();
+Node *parse(char *input) {
+  begin = input;
+  token = tokenize(input);
   return program();
 }

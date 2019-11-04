@@ -1,25 +1,9 @@
 #include "cc7.h"
 #include <ctype.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-char *user_input;
-
-void report_error(char *location, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-
-  int position = location - user_input;
-  fprintf(stderr, "%s\n", user_input);
-  fprintf(stderr, "%*s", position, "");
-  fprintf(stderr, "^ ");
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
-}
 
 Token *new_token(TokenType type, char *begin, int length) {
   Token *token = calloc(1, sizeof(Token));
@@ -46,8 +30,8 @@ bool starts_and_ends_with(char *string, char *segment) {
   return memcmp(string, segment, length) == 0 && !is_alnum(string[length]);
 }
 
-Token *tokenize() {
-  char *p = user_input;
+Token *tokenize(char *input) {
+  char *p = input;
 
   Token head;
   head.next = NULL;
@@ -132,7 +116,10 @@ Token *tokenize() {
       current = current->next = new_token(TOKEN_TYPE_NUMBER, p, p - q);
       current->value = value;
     } else {
-      report_error(p, "Expected a number.");
+      int position = p - input;
+      fprintf(stderr, "%s\n", input);
+      fprintf(stderr, "%*s^ Unexpected character.\n", position, "");
+      exit(1);
     }
   }
 
