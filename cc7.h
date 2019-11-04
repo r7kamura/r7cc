@@ -14,6 +14,13 @@ struct LocalVariable {
   int offset;
 };
 
+typedef struct Scope Scope;
+
+struct Scope {
+  Scope *parent;
+  LocalVariable *local_variable;
+};
+
 typedef enum {
   NODE_TYPE_ADD,
   NODE_TYPE_ASSIGN,
@@ -46,6 +53,8 @@ struct Node {
   union {
     int value;
 
+    int offset;
+
     struct {
       Node *lhs;
       Node *rhs;
@@ -71,6 +80,7 @@ struct Node {
       char *name;
       int name_length;
       Node *block;
+      Scope *scope;
     } function_definition;
 
     struct {
