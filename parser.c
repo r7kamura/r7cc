@@ -54,16 +54,14 @@ void report_error(char *location, char *fmt, ...) {
   exit(1);
 }
 
-bool consume(TokenType type) {
+Token *consume(TokenType type) {
+  Token *token_;
   if (token->type == type) {
+    token_ = token;
     token = token->next;
-    return true;
+    return token_;
   }
-  return false;
-}
-
-bool at(TokenType type) {
-  return token->type == type;
+  return NULL;
 }
 
 void expect(TokenType type) {
@@ -84,19 +82,26 @@ int expect_number() {
   return value;
 }
 
-Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
+Node *new_node(NodeType type) {
   Node *node = calloc(1, sizeof(Node));
   node->type = type;
-  node->lhs = lhs;
-  node->rhs = rhs;
+}
+
+Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
+  Node *node = new_node(type);
+  node->binary.lhs = lhs;
+  node->binary.rhs = rhs;
   return node;
 }
 
 Node *new_number_node(int value) {
-  Node *node = calloc(1, sizeof(Node));
-  node->type = NODE_TYPE_NUMBER;
+  Node *node = new_node(NODE_TYPE_NUMBER);
   node->value = value;
   return node;
+}
+
+Nodes *new_nodes() {
+  return calloc(1, sizeof(Nodes));
 }
 
 LocalVariable *find_local_variable(Token *token) {
@@ -109,9 +114,7 @@ LocalVariable *find_local_variable(Token *token) {
 }
 
 Node *generate_local_variable_node(Token *token) {
-  Node *node = calloc(1, sizeof(Node));
-
-  node->type = NODE_TYPE_LOCAL_VARIABLE;
+  Node *node = new_node(NODE_TYPE_LOCAL_VARIABLE);
 
   LocalVariable *local_variable = find_local_variable(token);
   if (!local_variable) {
@@ -129,25 +132,28 @@ Node *generate_local_variable_node(Token *token) {
 
 // function_definition = identifier "(" ")" statement_block
 Node *function_definition() {
-  Node *function_definition = new_binary_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
-  function_definition->name = token->string;
-  function_definition->name_length = token->length;
-  token = token->next;
+  Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
+  Node *node = new_node(NODE_TYPE_FUNCTION_DEFINITION);
+  node->function_definition.name = identifier->string;
+  node->function_definition.name_length = identifier->length;
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-  function_definition->lhs = statement_block();
-  return function_definition;
+  node->function_definition.block = statement_block();
+  return node;
 }
 
 // program = function_definition*
 Node *program() {
-  Node *head = new_binary_node(NODE_TYPE_PROGRAM, NULL, NULL);
-  Node *node = head;
+  Node *node = new_node(NODE_TYPE_PROGRAM);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
   while (token->type == TOKEN_TYPE_IDENTIFIER) {
-    node->rhs = function_definition();
-    node = node->rhs;
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = function_definition();
   }
-  return head;
+  node->program.nodes = head->next;
+  return node;
 }
 
 // statement
@@ -158,34 +164,35 @@ Node *program() {
 //   | statement_block
 //   | statement_expression
 Node *statement() {
-  if (at(TOKEN_TYPE_RETURN)) {
+  switch (token->type) {
+  case TOKEN_TYPE_RETURN:
     return statement_return();
-  }
-  if (at(TOKEN_TYPE_FOR)) {
+  case TOKEN_TYPE_FOR:
     return statement_for();
-  }
-  if (at(TOKEN_TYPE_IF)) {
+  case TOKEN_TYPE_IF:
     return statement_if();
-  }
-  if (at(TOKEN_TYPE_WHILE)) {
+  case TOKEN_TYPE_WHILE:
     return statement_while();
-  }
-  if (at(TOKEN_TYPE_BRACKET_LEFT)) {
+  case TOKEN_TYPE_BRACKET_LEFT:
     return statement_block();
+  default:
+    return statement_expression();
   }
-  return statement_expression();
 }
 
 // statement_block = "{" statement* "}"
 Node *statement_block() {
   expect(TOKEN_TYPE_BRACKET_LEFT);
-  Node *node = new_binary_node(NODE_TYPE_BLOCK, NULL, NULL);
-  Node *head = node;
+  Node *node = new_node(NODE_TYPE_BLOCK);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
   while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
-    node->rhs = new_binary_node(NODE_TYPE_STATEMENT, statement(), NULL);
-    node = node->rhs;
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = statement();
   }
-  return head;
+  node->block.nodes = head->next;
+  return node;
 }
 
 // statement_expression = expression ";"
@@ -197,8 +204,10 @@ Node *statement_expression() {
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
 Node *statement_for() {
+  Node *node = new_node(NODE_TYPE_FOR);
   expect(TOKEN_TYPE_FOR);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+
   Node *initialization;
   if (consume(TOKEN_TYPE_SEMICOLON)) {
     initialization = NULL;
@@ -206,6 +215,7 @@ Node *statement_for() {
     initialization = expression();
     expect(TOKEN_TYPE_SEMICOLON);
   }
+  node->for_statement.initialization = initialization;
 
   Node *condition;
   if (consume(TOKEN_TYPE_SEMICOLON)) {
@@ -214,47 +224,41 @@ Node *statement_for() {
     condition = expression();
     expect(TOKEN_TYPE_SEMICOLON);
   }
+  node->for_statement.condition = condition;
 
   Node *afterthrough;
-  if (consume(TOKEN_TYPE_SEMICOLON)) {
+  if (consume(TOKEN_TYPE_PARENTHESIS_RIGHT)) {
     afterthrough = NULL;
   } else {
     afterthrough = expression();
+    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   }
-  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  node->for_statement.afterthrough = afterthrough;
 
-  return new_binary_node(
-      NODE_TYPE_FOR,
-      initialization,
-      new_binary_node(
-          NODE_TYPE_FOR_CONDITION,
-          condition,
-          new_binary_node(
-              NODE_TYPE_FOR_AFTERTHROUGH,
-              afterthrough,
-              statement())));
+  node->for_statement.statement = statement();
+
+  return node;
 }
 
 // statement_if = "if" "(" expression ")" statement ("else" statement)?
 Node *statement_if() {
   expect(TOKEN_TYPE_IF);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
-  Node *node_if_expression = expression();
+  Node *node = new_node(NODE_TYPE_IF);
+  node->if_statement.condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-  Node *node_if_statement = statement();
-  Node *node_if = new_binary_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
-  Node *node_else = NULL;
-  if (token->type == TOKEN_TYPE_ELSE) {
-    token = token->next;
-    node_else = statement();
+  node->if_statement.true_statement = statement();
+  if (consume(TOKEN_TYPE_ELSE)) {
+    node->if_statement.false_statement = statement();
   }
-  return new_binary_node(NODE_TYPE_IF_ELSE, node_if, node_else);
+  return node;
 }
 
 // statement_return = "return" expression ";"
 Node *statement_return() {
   expect(TOKEN_TYPE_RETURN);
-  Node *node = new_binary_node(NODE_TYPE_RETURN, expression(), NULL);
+  Node *node = new_node(NODE_TYPE_RETURN);
+  node->return_statement.expression = expression();
   expect(TOKEN_TYPE_SEMICOLON);
   return node;
 }
@@ -263,9 +267,11 @@ Node *statement_return() {
 Node *statement_while() {
   expect(TOKEN_TYPE_WHILE);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
-  Node *condition = expression();
+  Node *node = new_node(NODE_TYPE_WHILE);
+  node->while_statement.condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-  return new_binary_node(NODE_TYPE_WHILE, condition, statement());
+  node->while_statement.statement = statement();
+  return node;
 }
 
 // expression = assign
@@ -355,30 +361,38 @@ Node *unary() {
   }
 }
 
+// function_call_or_local_variable = identifier ("(" ")")?
 Node *function_call_or_local_variable() {
-  if (token->type == TOKEN_TYPE_IDENTIFIER) {
-    Token *identifier = token;
-    token = token->next;
-    if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
-      expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-      Node *function_call = new_binary_node(NODE_TYPE_FUNCTION_CALL, NULL, NULL);
-      function_call->name = identifier->string;
-      function_call->name_length = identifier->length;
-      return function_call;
-    } else {
-      return generate_local_variable_node(identifier);
+  Node *node;
+  Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
+  if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
+    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+    node = new_node(NODE_TYPE_FUNCTION_CALL);
+    node->function_call.name = identifier->string;
+    node->function_call.name_length = identifier->length;
+  } else {
+    node = new_node(NODE_TYPE_LOCAL_VARIABLE);
+    LocalVariable *local_variable = find_local_variable(identifier);
+    if (!local_variable) {
+      local_variable = calloc(1, sizeof(LocalVariable));
+      local_variable->name = identifier->string;
+      local_variable->length = identifier->length;
+      local_variable->offset = local_variables ? local_variables->offset + 8 : 8;
+      local_variable->next = local_variables;
+      local_variables = local_variable;
     }
+    node->value = local_variable->offset;
   }
-  return NULL;
+  return node;
 }
 
+// expression_in_parentheses = "(" expression ")"
 Node *expression_in_parentheses() {
-  if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
-    Node *node = expression();
-    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-    return node;
-  }
-  return NULL;
+  Node *node;
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  node = expression();
+  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  return node;
 }
 
 Node *number() {
@@ -387,14 +401,14 @@ Node *number() {
 
 // primary = expression_in_parentheses | function_call_or_local_variable | number
 Node *primary() {
-  Node *node;
-  if (node = expression_in_parentheses()) {
-    return node;
+  switch (token->type) {
+  case TOKEN_TYPE_PARENTHESIS_LEFT:
+    return expression_in_parentheses();
+  case TOKEN_TYPE_IDENTIFIER:
+    return function_call_or_local_variable();
+  default:
+    return number();
   }
-  if (node = function_call_or_local_variable()) {
-    return node;
-  }
-  return number();
 }
 
 Node *parse(char *input) {

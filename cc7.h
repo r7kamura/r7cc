@@ -21,11 +21,8 @@ typedef enum {
   NODE_TYPE_DIVIDE,
   NODE_TYPE_EQ,
   NODE_TYPE_FOR,
-  NODE_TYPE_FOR_AFTERTHROUGH,
-  NODE_TYPE_FOR_CONDITION,
   NODE_TYPE_FUNCTION_CALL,
   NODE_TYPE_FUNCTION_DEFINITION,
-  NODE_TYPE_IF_ELSE,
   NODE_TYPE_IF,
   NODE_TYPE_LE,
   NODE_TYPE_LOCAL_VARIABLE,
@@ -35,20 +32,71 @@ typedef enum {
   NODE_TYPE_NUMBER,
   NODE_TYPE_PROGRAM,
   NODE_TYPE_RETURN,
-  NODE_TYPE_STATEMENT,
   NODE_TYPE_SUBTRACT,
   NODE_TYPE_WHILE,
 } NodeType;
+
+typedef struct Nodes Nodes;
 
 typedef struct Node Node;
 
 struct Node {
   NodeType type;
-  Node *lhs;
-  Node *rhs;
-  int value;
-  int name_length;
-  char *name;
+
+  union {
+    int value;
+
+    struct {
+      Node *lhs;
+      Node *rhs;
+    } binary;
+
+    struct {
+      Nodes *nodes;
+    } block;
+
+    struct {
+      Node *initialization;
+      Node *condition;
+      Node *afterthrough;
+      Node *statement;
+    } for_statement;
+
+    struct {
+      char *name;
+      int name_length;
+    } function_call;
+
+    struct {
+      char *name;
+      int name_length;
+      Node *block;
+    } function_definition;
+
+    struct {
+      Node *condition;
+      Node *true_statement;
+      Node *false_statement;
+    } if_statement;
+
+    struct {
+      Nodes *nodes;
+    } program;
+
+    struct {
+      Node *expression;
+    } return_statement;
+
+    struct {
+      Node *condition;
+      Node *statement;
+    } while_statement;
+  };
+};
+
+struct Nodes {
+  Node *node;
+  Nodes *next;
 };
 
 typedef enum {

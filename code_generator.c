@@ -13,8 +13,8 @@ void generate_local_variable_address(Node *node) {
 }
 
 void generate_add(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  add rax, rdi\n");
@@ -22,12 +22,12 @@ void generate_add(Node *node) {
 }
 
 void generate_assign(Node *node) {
-  if (node->lhs->type != NODE_TYPE_LOCAL_VARIABLE) {
+  if (node->binary.lhs->type != NODE_TYPE_LOCAL_VARIABLE) {
     fprintf(stderr, "Left value in assignment must be a local variable.");
     exit(1);
   }
-  generate_local_variable_address(node->lhs);
-  generate(node->rhs);
+  generate_local_variable_address(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  mov [rax], rdi\n");
@@ -35,12 +35,14 @@ void generate_assign(Node *node) {
 }
 
 void generate_block(Node *node) {
-  generate(node->rhs);
+  for (Nodes *nodes = node->block.nodes; nodes != NULL; nodes = nodes->next) {
+    generate(nodes->node);
+  }
 }
 
 void generate_divide(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  cqo\n");
@@ -49,8 +51,8 @@ void generate_divide(Node *node) {
 }
 
 void generate_eq(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  cmp rax, rdi\n");
@@ -61,16 +63,16 @@ void generate_eq(Node *node) {
 
 void generate_for(Node *node) {
   int label_count = label_counter++;
-  generate(node->lhs);
+  generate(node->for_statement.initialization);
   printf(".Lbegin%i:\n", label_count);
-  if (node->rhs->lhs) {
-    generate(node->rhs->lhs);
+  if (node->for_statement.condition) {
+    generate(node->for_statement.condition);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .Lend%i\n", label_count);
   }
-  generate(node->rhs->rhs->rhs);
-  generate(node->rhs->rhs->lhs);
+  generate(node->for_statement.statement);
+  generate(node->for_statement.afterthrough);
   printf("  jmp .Lbegin%i\n", label_count);
   printf(".Lend%i:\n", label_count);
 }
@@ -81,51 +83,50 @@ void generate_function_call(Node *node) {
   printf("  and rax, 15\n");
   printf("  jnz .Lcall%i\n", label_count);
   printf("  mov rax, 0\n");
-  printf("  call %.*s\n", node->name_length, node->name);
+  printf("  call %.*s\n", node->function_call.name_length, node->function_call.name);
   printf("  jmp .Lend%i\n", label_count);
   printf(".Lcall%i:\n", label_count);
   printf("  sub rsp, 8\n");
   printf("  mov rax, 0\n");
-  printf("  call %.*s\n", node->name_length, node->name);
+  printf("  call %.*s\n", node->function_call.name_length, node->function_call.name);
   printf("  add rsp, 8\n");
   printf(".Lend%i:\n", label_count);
   printf("  push rax\n");
 }
 
 void generate_function_definition(Node *node) {
-  printf("%.*s:\n", node->name_length, node->name);
+  printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, 208\n");
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->function_definition.block);
 }
 
-void generate_if_else(Node *node) {
+void generate_if(Node *node) {
   int label_count = label_counter++;
-  if (node->rhs) {
-    generate(node->lhs->lhs);
+  if (node->if_statement.false_statement) {
+    generate(node->if_statement.condition);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .Lelse%i\n", label_count);
-    generate(node->lhs->rhs);
+    generate(node->if_statement.true_statement);
     printf("  jmp .Lend%i\n", label_count);
     printf(".Lelse%i:\n", label_count);
-    generate(node->rhs);
+    generate(node->if_statement.false_statement);
     printf(".Lend%i:\n", label_count);
   } else {
-    generate(node->lhs->lhs);
+    generate(node->if_statement.condition);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .Lend%i\n", label_count);
-    generate(node->lhs->rhs);
+    generate(node->if_statement.true_statement);
     printf(".Lend%i:\n", label_count);
   }
 }
 
 void generate_le(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  cmp rax, rdi\n");
@@ -142,8 +143,8 @@ void generate_local_variable(Node *node) {
 }
 
 void generate_lt(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  cmp rax, rdi\n");
@@ -153,8 +154,8 @@ void generate_lt(Node *node) {
 }
 
 void generate_multiply(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  imul rax, rdi\n");
@@ -162,8 +163,8 @@ void generate_multiply(Node *node) {
 }
 
 void generate_ne(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  cmp rax, rdi\n");
@@ -179,26 +180,22 @@ void generate_number(Node *node) {
 void generate_program(Node *node) {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
-  generate(node->rhs);
+  for (Nodes *nodes = node->program.nodes; nodes != NULL; nodes = nodes->next) {
+    generate(nodes->node);
+  }
 }
 
 void generate_return(Node *node) {
-  generate(node->lhs);
+  generate(node->return_statement.expression);
   printf("  pop rax\n");
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
   printf("  ret\n");
 }
 
-void generate_statement(Node *node) {
-  generate(node->lhs);
-  printf("  pop rax\n");
-  generate(node->rhs);
-}
-
 void generate_subtract(Node *node) {
-  generate(node->lhs);
-  generate(node->rhs);
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  sub rax, rdi\n");
@@ -208,11 +205,11 @@ void generate_subtract(Node *node) {
 void generate_while(Node *node) {
   int label_count = label_counter++;
   printf(".Lbegin%i:\n", label_count);
-  generate(node->lhs);
+  generate(node->while_statement.condition);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
   printf("  je .Lend%i\n", label_count);
-  generate(node->rhs);
+  generate(node->while_statement.statement);
   printf("  jmp .Lbegin%i\n", label_count);
   printf(".Lend%i:\n", label_count);
 }
@@ -247,8 +244,8 @@ void generate(Node *node) {
   case NODE_TYPE_FUNCTION_DEFINITION:
     generate_function_definition(node);
     break;
-  case NODE_TYPE_IF_ELSE:
-    generate_if_else(node);
+  case NODE_TYPE_IF:
+    generate_if(node);
     break;
   case NODE_TYPE_LE:
     generate_le(node);
@@ -273,9 +270,6 @@ void generate(Node *node) {
     break;
   case NODE_TYPE_RETURN:
     generate_return(node);
-    break;
-  case NODE_TYPE_STATEMENT:
-    generate_statement(node);
     break;
   case NODE_TYPE_SUBTRACT:
     generate_subtract(node);
