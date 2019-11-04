@@ -62,8 +62,8 @@ bool consume(TokenType type) {
   return false;
 }
 
-bool at_eof() {
-  return token->type == TOKEN_TYPE_EOF;
+bool at(TokenType type) {
+  return token->type == type;
 }
 
 void expect(TokenType type) {
@@ -137,7 +137,6 @@ Node *function_definition() {
   token = token->next;
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-  expect(TOKEN_TYPE_BRACKET_LEFT);
   function_definition->lhs = statement_block();
   return function_definition;
 }
@@ -161,23 +160,27 @@ Node *program() {
 //   | statement_block
 //   | statement_expression
 Node *statement() {
-  if (consume(TOKEN_TYPE_RETURN)) {
+  if (at(TOKEN_TYPE_RETURN)) {
     return statement_return();
-  } else if (consume(TOKEN_TYPE_FOR)) {
-    return statement_for();
-  } else if (consume(TOKEN_TYPE_IF)) {
-    return statement_if();
-  } else if (consume(TOKEN_TYPE_WHILE)) {
-    return statement_while();
-  } else if (consume(TOKEN_TYPE_BRACKET_LEFT)) {
-    return statement_block();
-  } else {
-    return statement_expression();
   }
+  if (at(TOKEN_TYPE_FOR)) {
+    return statement_for();
+  }
+  if (at(TOKEN_TYPE_IF)) {
+    return statement_if();
+  }
+  if (at(TOKEN_TYPE_WHILE)) {
+    return statement_while();
+  }
+  if (at(TOKEN_TYPE_BRACKET_LEFT)) {
+    return statement_block();
+  }
+  return statement_expression();
 }
 
 // statement_block = "{" statement* "}"
 Node *statement_block() {
+  expect(TOKEN_TYPE_BRACKET_LEFT);
   Node *node = generate_branch_node(NODE_TYPE_BLOCK, NULL, NULL);
   Node *head = node;
   while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
@@ -196,6 +199,7 @@ Node *statement_expression() {
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
 Node *statement_for() {
+  expect(TOKEN_TYPE_FOR);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *initialization;
   if (consume(TOKEN_TYPE_SEMICOLON)) {
@@ -235,6 +239,7 @@ Node *statement_for() {
 
 // statement_if = "if" "(" expression ")" statement ("else" statement)?
 Node *statement_if() {
+  expect(TOKEN_TYPE_IF);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *node_if_expression = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
@@ -250,6 +255,7 @@ Node *statement_if() {
 
 // statement_return = "return" expression ";"
 Node *statement_return() {
+  expect(TOKEN_TYPE_RETURN);
   Node *node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
   expect(TOKEN_TYPE_SEMICOLON);
   return node;
@@ -257,6 +263,7 @@ Node *statement_return() {
 
 // statement_while = "while" "(" expression ")" statement
 Node *statement_while() {
+  expect(TOKEN_TYPE_WHILE);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
