@@ -41,7 +41,7 @@ bool starts_with(char *string, char *segment) {
   return memcmp(string, segment, strlen(segment)) == 0;
 }
 
-bool starts_with_keyword(char *string, char *segment) {
+bool starts_and_ends_with(char *string, char *segment) {
   int length = strlen(segment);
   return memcmp(string, segment, length) == 0 && !is_alnum(string[length]);
 }
@@ -104,19 +104,19 @@ Token *tokenize() {
     } else if (*p == '}') {
       current = current->next = new_token(TOKEN_TYPE_BRACKET_RIGHT, p, 1);
       p++;
-    } else if (starts_with_keyword(p, "if")) {
+    } else if (starts_and_ends_with(p, "if")) {
       current = current->next = new_token(TOKEN_TYPE_IF, p, 2);
       p += 2;
-    } else if (starts_with_keyword(p, "for")) {
+    } else if (starts_and_ends_with(p, "for")) {
       current = current->next = new_token(TOKEN_TYPE_FOR, p, 3);
       p += 3;
-    } else if (starts_with_keyword(p, "else")) {
+    } else if (starts_and_ends_with(p, "else")) {
       current = current->next = new_token(TOKEN_TYPE_ELSE, p, 4);
       p += 4;
-    } else if (starts_with_keyword(p, "while")) {
+    } else if (starts_and_ends_with(p, "while")) {
       current = current->next = new_token(TOKEN_TYPE_WHILE, p, 5);
       p += 5;
-    } else if (starts_with_keyword(p, "return")) {
+    } else if (starts_and_ends_with(p, "return")) {
       current = current->next = new_token(TOKEN_TYPE_RETURN, p, 6);
       p += 6;
     } else if (is_alpha(*p)) {
