@@ -84,9 +84,7 @@ int expect_number() {
   return value;
 }
 
-// AST builder functions
-
-Node *generate_branch_node(NodeType type, Node *lhs, Node *rhs) {
+Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->type = type;
   node->lhs = lhs;
@@ -94,7 +92,7 @@ Node *generate_branch_node(NodeType type, Node *lhs, Node *rhs) {
   return node;
 }
 
-Node *generate_leaf_node(int value) {
+Node *new_number_node(int value) {
   Node *node = calloc(1, sizeof(Node));
   node->type = NODE_TYPE_NUMBER;
   node->value = value;
@@ -131,7 +129,7 @@ Node *generate_local_variable_node(Token *token) {
 
 // function_definition = identifier "(" ")" statement_block
 Node *function_definition() {
-  Node *function_definition = generate_branch_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
+  Node *function_definition = new_binary_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
   function_definition->name = token->string;
   function_definition->name_length = token->length;
   token = token->next;
@@ -143,7 +141,7 @@ Node *function_definition() {
 
 // program = function_definition*
 Node *program() {
-  Node *head = generate_branch_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
+  Node *head = new_binary_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
   Node *node = head;
   while (token->type == TOKEN_TYPE_IDENTIFIER) {
     node->rhs = function_definition();
@@ -181,10 +179,10 @@ Node *statement() {
 // statement_block = "{" statement* "}"
 Node *statement_block() {
   expect(TOKEN_TYPE_BRACKET_LEFT);
-  Node *node = generate_branch_node(NODE_TYPE_BLOCK, NULL, NULL);
+  Node *node = new_binary_node(NODE_TYPE_BLOCK, NULL, NULL);
   Node *head = node;
   while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
-    node->rhs = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+    node->rhs = new_binary_node(NODE_TYPE_STATEMENT, statement(), NULL);
     node = node->rhs;
   }
   return head;
@@ -225,13 +223,13 @@ Node *statement_for() {
   }
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
 
-  return generate_branch_node(
+  return new_binary_node(
       NODE_TYPE_FOR,
       initialization,
-      generate_branch_node(
+      new_binary_node(
           NODE_TYPE_FOR_CONDITION,
           condition,
-          generate_branch_node(
+          new_binary_node(
               NODE_TYPE_FOR_AFTERTHROUGH,
               afterthrough,
               statement())));
@@ -244,19 +242,19 @@ Node *statement_if() {
   Node *node_if_expression = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   Node *node_if_statement = statement();
-  Node *node_if = generate_branch_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
+  Node *node_if = new_binary_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
   Node *node_else = NULL;
   if (token->type == TOKEN_TYPE_ELSE) {
     token = token->next;
     node_else = statement();
   }
-  return generate_branch_node(NODE_TYPE_IF_ELSE, node_if, node_else);
+  return new_binary_node(NODE_TYPE_IF_ELSE, node_if, node_else);
 }
 
 // statement_return = "return" expression ";"
 Node *statement_return() {
   expect(TOKEN_TYPE_RETURN);
-  Node *node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
+  Node *node = new_binary_node(NODE_TYPE_RETURN, expression(), NULL);
   expect(TOKEN_TYPE_SEMICOLON);
   return node;
 }
@@ -267,7 +265,7 @@ Node *statement_while() {
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-  return generate_branch_node(NODE_TYPE_WHILE, condition, statement());
+  return new_binary_node(NODE_TYPE_WHILE, condition, statement());
 }
 
 // expression = assign
@@ -279,7 +277,7 @@ Node *expression() {
 Node *assign() {
   Node *node = equality();
   if (consume(TOKEN_TYPE_ASSIGN)) {
-    node = generate_branch_node(NODE_TYPE_ASSIGN, node, assign());
+    node = new_binary_node(NODE_TYPE_ASSIGN, node, assign());
   }
   return node;
 }
@@ -290,9 +288,9 @@ Node *equality() {
 
   while (true) {
     if (consume(TOKEN_TYPE_EQ)) {
-      node = generate_branch_node(NODE_TYPE_EQ, node, relational());
+      node = new_binary_node(NODE_TYPE_EQ, node, relational());
     } else if (consume(TOKEN_TYPE_NE)) {
-      node = generate_branch_node(NODE_TYPE_NE, node, relational());
+      node = new_binary_node(NODE_TYPE_NE, node, relational());
     } else {
       return node;
     }
@@ -305,13 +303,13 @@ Node *relational() {
 
   while (true) {
     if (consume(TOKEN_TYPE_LT)) {
-      node = generate_branch_node(NODE_TYPE_LT, node, add_or_subtract());
+      node = new_binary_node(NODE_TYPE_LT, node, add_or_subtract());
     } else if (consume(TOKEN_TYPE_LE)) {
-      node = generate_branch_node(NODE_TYPE_LE, node, add_or_subtract());
+      node = new_binary_node(NODE_TYPE_LE, node, add_or_subtract());
     } else if (consume(TOKEN_TYPE_GT)) {
-      node = generate_branch_node(NODE_TYPE_LT, add_or_subtract(), node);
+      node = new_binary_node(NODE_TYPE_LT, add_or_subtract(), node);
     } else if (consume(TOKEN_TYPE_GE)) {
-      node = generate_branch_node(NODE_TYPE_LE, add_or_subtract(), node);
+      node = new_binary_node(NODE_TYPE_LE, add_or_subtract(), node);
     } else {
       return node;
     }
@@ -324,9 +322,9 @@ Node *add_or_subtract() {
 
   while (true) {
     if (consume(TOKEN_TYPE_ADD)) {
-      node = generate_branch_node(NODE_TYPE_ADD, node, multiply_or_devide());
+      node = new_binary_node(NODE_TYPE_ADD, node, multiply_or_devide());
     } else if (consume(TOKEN_TYPE_SUBTRACT)) {
-      node = generate_branch_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
+      node = new_binary_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
     } else {
       return node;
     }
@@ -339,9 +337,9 @@ Node *multiply_or_devide() {
 
   while (true) {
     if (consume(TOKEN_TYPE_MULTIPLY)) {
-      node = generate_branch_node(NODE_TYPE_MULTIPLY, node, unary());
+      node = new_binary_node(NODE_TYPE_MULTIPLY, node, unary());
     } else if (consume(TOKEN_TYPE_DIVIDE)) {
-      node = generate_branch_node(NODE_TYPE_DIVIDE, node, unary());
+      node = new_binary_node(NODE_TYPE_DIVIDE, node, unary());
     } else {
       return node;
     }
@@ -351,7 +349,7 @@ Node *multiply_or_devide() {
 // unary = ("+" | "-")? primary
 Node *unary() {
   if (consume(TOKEN_TYPE_SUBTRACT)) {
-    return generate_branch_node(NODE_TYPE_SUBTRACT, generate_leaf_node(0), primary());
+    return new_binary_node(NODE_TYPE_SUBTRACT, new_number_node(0), primary());
   } else {
     return primary();
   }
@@ -363,7 +361,7 @@ Node *function_call_or_local_variable() {
     token = token->next;
     if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
       expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
-      Node *function_call = generate_branch_node(NODE_TYPE_FUNCTION_CALL, NULL, NULL);
+      Node *function_call = new_binary_node(NODE_TYPE_FUNCTION_CALL, NULL, NULL);
       function_call->name = identifier->string;
       function_call->name_length = identifier->length;
       return function_call;
@@ -384,7 +382,7 @@ Node *expression_in_parentheses() {
 }
 
 Node *number() {
-  return generate_leaf_node(expect_number());
+  return new_number_node(expect_number());
 }
 
 // primary = expression_in_parentheses | function_call_or_local_variable | number
