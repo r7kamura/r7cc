@@ -21,12 +21,11 @@ void report_error(char *location, char *fmt, ...) {
   exit(1);
 }
 
-Token *generate_token(TokenType type, Token *current, char *string, int length) {
+Token *new_token(TokenType type, char *begin, int length) {
   Token *token = calloc(1, sizeof(Token));
   token->type = type;
-  token->string = string;
+  token->string = begin;
   token->length = length;
-  current->next = token;
   return token;
 }
 
@@ -57,26 +56,68 @@ Token *tokenize() {
   while (*p) {
     if (isspace(*p)) {
       p++;
-    } else if (starts_with(p, "==") || starts_with(p, "!=") || starts_with(p, "<=") || starts_with(p, ">=")) {
-      current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 2);
+    } else if (starts_with(p, "==")) {
+      current = current->next = new_token(TOKEN_TYPE_EQ, p, 2);
       p += 2;
-    } else if (strchr("+-*/()<>;={}", *p)) {
-      current = generate_token(TOKEN_TYPE_RESERVED_SYMBOL, current, p, 1);
+    } else if (starts_with(p, "!=")) {
+      current = current->next = new_token(TOKEN_TYPE_NE, p, 2);
+      p += 2;
+    } else if (starts_with(p, "<=")) {
+      current = current->next = new_token(TOKEN_TYPE_LE, p, 2);
+      p += 2;
+    } else if (starts_with(p, ">=")) {
+      current = current->next = new_token(TOKEN_TYPE_GE, p, 2);
+      p += 2;
+    } else if (*p == '+') {
+      current = current->next = new_token(TOKEN_TYPE_ADD, p, 1);
+      p++;
+    } else if (*p == '-') {
+      current = current->next = new_token(TOKEN_TYPE_SUBTRACT, p, 1);
+      p++;
+    } else if (*p == '*') {
+      current = current->next = new_token(TOKEN_TYPE_MULTIPLY, p, 1);
+      p++;
+    } else if (*p == '/') {
+      current = current->next = new_token(TOKEN_TYPE_DIVIDE, p, 1);
+      p++;
+    } else if (*p == ';') {
+      current = current->next = new_token(TOKEN_TYPE_SEMICOLON, p, 1);
+      p++;
+    } else if (*p == '=') {
+      current = current->next = new_token(TOKEN_TYPE_ASSIGN, p, 1);
+      p++;
+    } else if (*p == '<') {
+      current = current->next = new_token(TOKEN_TYPE_LT, p, 1);
+      p++;
+    } else if (*p == '>') {
+      current = current->next = new_token(TOKEN_TYPE_GT, p, 1);
+      p++;
+    } else if (*p == '(') {
+      current = current->next = new_token(TOKEN_TYPE_PARENTHESIS_LEFT, p, 1);
+      p++;
+    } else if (*p == ')') {
+      current = current->next = new_token(TOKEN_TYPE_PARENTHESIS_RIGHT, p, 1);
+      p++;
+    } else if (*p == '{') {
+      current = current->next = new_token(TOKEN_TYPE_BRACKET_LEFT, p, 1);
+      p++;
+    } else if (*p == '}') {
+      current = current->next = new_token(TOKEN_TYPE_BRACKET_RIGHT, p, 1);
       p++;
     } else if (starts_with_keyword(p, "if")) {
-      current = generate_token(TOKEN_TYPE_IF, current, p, 2);
+      current = current->next = new_token(TOKEN_TYPE_IF, p, 2);
       p += 2;
     } else if (starts_with_keyword(p, "for")) {
-      current = generate_token(TOKEN_TYPE_FOR, current, p, 3);
+      current = current->next = new_token(TOKEN_TYPE_FOR, p, 3);
       p += 3;
     } else if (starts_with_keyword(p, "else")) {
-      current = generate_token(TOKEN_TYPE_ELSE, current, p, 4);
+      current = current->next = new_token(TOKEN_TYPE_ELSE, p, 4);
       p += 4;
     } else if (starts_with_keyword(p, "while")) {
-      current = generate_token(TOKEN_TYPE_WHILE, current, p, 5);
+      current = current->next = new_token(TOKEN_TYPE_WHILE, p, 5);
       p += 5;
     } else if (starts_with_keyword(p, "return")) {
-      current = generate_token(TOKEN_TYPE_RETURN, current, p, 6);
+      current = current->next = new_token(TOKEN_TYPE_RETURN, p, 6);
       p += 6;
     } else if (is_alpha(*p)) {
       char *q = p;
@@ -84,17 +125,17 @@ Token *tokenize() {
       while (is_alnum(*p)) {
         p++;
       }
-      current = generate_token(TOKEN_TYPE_IDENTIFIER, current, q, p - q);
+      current = current->next = new_token(TOKEN_TYPE_IDENTIFIER, q, p - q);
     } else if (isdigit(*p)) {
-      current = generate_token(TOKEN_TYPE_NUMBER, current, p, 0);
       char *q = p;
-      current->value = strtol(p, &p, 10);
-      current->length = p - q;
+      int value = strtol(p, &p, 10);
+      current = current->next = new_token(TOKEN_TYPE_NUMBER, p, p - q);
+      current->value = value;
     } else {
       report_error(p, "Expected a number.");
     }
   }
 
-  generate_token(TOKEN_TYPE_EOF, current, p, 0);
+  current->next = new_token(TOKEN_TYPE_EOF, p, 0);
   return head.next;
 }
