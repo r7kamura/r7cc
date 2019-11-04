@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void generate_code_for_expression(Node *node);
+void generate(Node *node);
 
 int label_counter;
 
@@ -38,43 +38,43 @@ void generate_code_for_return() {
 }
 
 void generate_code_for_if_only(Node *node) {
-  generate_code_for_expression(node->lhs);
+  generate(node->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
   int count = label_counter++;
   printf("  je .Lend%i\n", count);
-  generate_code_for_expression(node->rhs);
+  generate(node->rhs);
   printf(".Lend%i:\n", count);
 }
 
 void generate_code_for_if_and_else(Node *node) {
-  generate_code_for_expression(node->lhs->lhs);
+  generate(node->lhs->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
   int label_count = label_counter++;
   printf("  je .Lelse%i\n", label_count);
-  generate_code_for_expression(node->lhs->rhs);
+  generate(node->lhs->rhs);
   printf("  jmp .Lend%i\n", label_count);
   printf(".Lelse%i:\n", label_count);
-  generate_code_for_expression(node->rhs);
+  generate(node->rhs);
   printf(".Lend%i:\n", label_count);
 }
 
 void generate_code_for_for(Node *node) {
   if (node->lhs) {
-    generate_code_for_expression(node->lhs);
+    generate(node->lhs);
   }
   int label_count = label_counter++;
   printf(".Lbegin%i:\n", label_count);
   if (node->rhs->lhs) {
-    generate_code_for_expression(node->rhs->lhs);
+    generate(node->rhs->lhs);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .Lend%i\n", label_count);
   }
-  generate_code_for_expression(node->rhs->rhs->rhs);
+  generate(node->rhs->rhs->rhs);
   if (node->rhs->rhs->lhs) {
-    generate_code_for_expression(node->rhs->rhs->lhs);
+    generate(node->rhs->rhs->lhs);
   }
   printf("  jmp .Lbegin%i\n", label_count);
   printf(".Lend%i:\n", label_count);
@@ -83,23 +83,23 @@ void generate_code_for_for(Node *node) {
 void generate_code_for_while(Node *node) {
   int label_count = label_counter++;
   printf(".Lbegin%i:\n", label_count);
-  generate_code_for_expression(node->lhs);
+  generate(node->lhs);
   printf("  pop rax\n");
   printf("  cmp rax, 0\n");
   printf("  je .Lend%i\n", label_count);
-  generate_code_for_expression(node->rhs);
+  generate(node->rhs);
   printf("  jmp .Lbegin%i\n", label_count);
   printf(".Lend%i:\n", label_count);
 }
 
-void generate_code_for_expression(Node *node) {
+void generate(Node *node) {
   switch (node->type) {
   case NODE_TYPE_NUMBER:
     printf("  push %d\n", node->value);
     return;
   case NODE_TYPE_ASSIGN:
     generate_code_for_local_variable(node->lhs);
-    generate_code_for_expression(node->rhs);
+    generate(node->rhs);
     generate_code_for_load();
     return;
   case NODE_TYPE_LOCAL_VARIABLE:
@@ -107,7 +107,7 @@ void generate_code_for_expression(Node *node) {
     generate_code_for_store();
     return;
   case NODE_TYPE_RETURN:
-    generate_code_for_expression(node->lhs);
+    generate(node->lhs);
     generate_code_for_return();
     return;
   case NODE_TYPE_IF_ELSE:
@@ -127,15 +127,15 @@ void generate_code_for_expression(Node *node) {
     generate_code_for_while(node);
     return;
   case NODE_TYPE_STATEMENT:
-    generate_code_for_expression(node->lhs);
+    generate(node->lhs);
     if (node->rhs) {
       printf("  pop rax\n");
-      generate_code_for_expression(node->rhs);
+      generate(node->rhs);
     }
     return;
   case NODE_TYPE_BLOCK:
     if (node->rhs) {
-      generate_code_for_expression(node->rhs);
+      generate(node->rhs);
     }
     return;
   case NODE_TYPE_FUNCTION_CALL: {
@@ -160,15 +160,15 @@ void generate_code_for_expression(Node *node) {
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, 208\n");
-    generate_code_for_expression(node->lhs);
+    generate(node->lhs);
     if (node->rhs) {
-      generate_code_for_expression(node->rhs);
+      generate(node->rhs);
     }
     return;
   }
 
-  generate_code_for_expression(node->lhs);
-  generate_code_for_expression(node->rhs);
+  generate(node->lhs);
+  generate(node->rhs);
 
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -215,5 +215,5 @@ void generate_code_for_expression(Node *node) {
 void generate_code(Node *node) {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
-  generate_code_for_expression(node);
+  generate(node);
 }
