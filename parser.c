@@ -129,15 +129,28 @@ Node *generate_local_variable_node(Token *token) {
   return node;
 }
 
-// program = statements+
+// function_definition = identifier "(" ")" statement_block
+Node *function_definition() {
+  Node *function_definition = generate_branch_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
+  function_definition->name = token->string;
+  function_definition->name_length = token->length;
+  token = token->next;
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  expect(TOKEN_TYPE_BRACKET_LEFT);
+  function_definition->lhs = statement_block();
+  return function_definition;
+}
+
+// program = function_definition*
 Node *program() {
-  Node *head = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+  Node *head = generate_branch_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
   Node *node = head;
-  while (!at_eof()) {
-    node->rhs = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
+  while (token->type == TOKEN_TYPE_IDENTIFIER) {
+    node->rhs = function_definition();
     node = node->rhs;
   }
-  return head;
+  return head->rhs;
 }
 
 // statement
@@ -337,19 +350,46 @@ Node *unary() {
   }
 }
 
-// primary = number | identifier | "(" expression ")"
-Node *primary() {
+Node *function_call_or_local_variable() {
+  if (token->type == TOKEN_TYPE_IDENTIFIER) {
+    Token *identifier = token;
+    token = token->next;
+    if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
+      expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+      Node *function_call = generate_branch_node(NODE_TYPE_FUNCTION_CALL, NULL, NULL);
+      function_call->name = identifier->string;
+      function_call->name_length = identifier->length;
+      return function_call;
+    } else {
+      return generate_local_variable_node(identifier);
+    }
+  }
+  return NULL;
+}
+
+Node *expression_in_parentheses() {
   if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
     Node *node = expression();
     expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
     return node;
-  } else if (token->type == TOKEN_TYPE_IDENTIFIER) {
-    Node *node = generate_local_variable_node(token);
-    token = token->next;
-    return node;
-  } else {
-    return generate_leaf_node(expect_number());
   }
+  return NULL;
+}
+
+Node *number() {
+  return generate_leaf_node(expect_number());
+}
+
+// primary = expression_in_parentheses | function_call_or_local_variable | number
+Node *primary() {
+  Node *node;
+  if (node = expression_in_parentheses()) {
+    return node;
+  }
+  if (node = function_call_or_local_variable()) {
+    return node;
+  }
+  return number();
 }
 
 Node *parse(char *input) {
