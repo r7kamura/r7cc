@@ -141,13 +141,13 @@ Node *function_definition() {
 
 // program = function_definition*
 Node *program() {
-  Node *head = new_binary_node(NODE_TYPE_FUNCTION_DEFINITION, NULL, NULL);
+  Node *head = new_binary_node(NODE_TYPE_PROGRAM, NULL, NULL);
   Node *node = head;
   while (token->type == TOKEN_TYPE_IDENTIFIER) {
     node->rhs = function_definition();
     node = node->rhs;
   }
-  return head->rhs;
+  return head;
 }
 
 // statement

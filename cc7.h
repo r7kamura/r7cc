@@ -33,6 +33,7 @@ typedef enum {
   NODE_TYPE_MULTIPLY,
   NODE_TYPE_NE,
   NODE_TYPE_NUMBER,
+  NODE_TYPE_PROGRAM,
   NODE_TYPE_RETURN,
   NODE_TYPE_STATEMENT,
   NODE_TYPE_SUBTRACT,
@@ -95,7 +96,7 @@ struct Token {
   int length;
 };
 
-void generate_code(Node *node);
+void generate(Node *node);
 
 Token *tokenize();
 
