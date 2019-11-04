@@ -35,11 +35,11 @@ Node *unary();
 
 Node *primary();
 
-LocalVariable *local_variables;
-
 Token *token;
 
 char *begin;
+
+Scope *scope;
 
 void report_error(char *location, char *fmt, ...) {
   va_list ap;
@@ -82,6 +82,12 @@ int expect_number() {
   return value;
 }
 
+Scope *new_scope(Scope *parent) {
+  Scope *scope_ = calloc(1, sizeof(Scope));
+  scope_->parent = parent;
+  return scope_;
+}
+
 Node *new_node(NodeType type) {
   Node *node = calloc(1, sizeof(Node));
   node->type = type;
@@ -105,29 +111,12 @@ Nodes *new_nodes() {
 }
 
 LocalVariable *find_local_variable(Token *token) {
-  for (LocalVariable *local_variable = local_variables; local_variable; local_variable = local_variable->next) {
+  for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
     if (local_variable->length == token->length && !memcmp(local_variable->name, token->string, local_variable->length)) {
       return local_variable;
     }
   }
   return NULL;
-}
-
-Node *generate_local_variable_node(Token *token) {
-  Node *node = new_node(NODE_TYPE_LOCAL_VARIABLE);
-
-  LocalVariable *local_variable = find_local_variable(token);
-  if (!local_variable) {
-    local_variable = calloc(1, sizeof(LocalVariable));
-    local_variable->name = token->string;
-    local_variable->length = token->length;
-    local_variable->offset = local_variables ? local_variables->offset + 8 : 8;
-    local_variable->next = local_variables;
-    local_variables = local_variable;
-  }
-  node->value = local_variable->offset;
-
-  return node;
 }
 
 // function_definition = identifier "(" ")" statement_block
@@ -138,12 +127,16 @@ Node *function_definition() {
   node->function_definition.name_length = identifier->length;
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  scope = new_scope(scope);
   node->function_definition.block = statement_block();
+  node->function_definition.scope = scope;
+  scope = scope->parent;
   return node;
 }
 
 // program = function_definition*
 Node *program() {
+  scope = new_scope(NULL);
   Node *node = new_node(NODE_TYPE_PROGRAM);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
@@ -373,15 +366,15 @@ Node *function_call_or_local_variable() {
   } else {
     node = new_node(NODE_TYPE_LOCAL_VARIABLE);
     LocalVariable *local_variable = find_local_variable(identifier);
-    if (!local_variable) {
+    if (local_variable == NULL) {
       local_variable = calloc(1, sizeof(LocalVariable));
       local_variable->name = identifier->string;
       local_variable->length = identifier->length;
-      local_variable->offset = local_variables ? local_variables->offset + 8 : 8;
-      local_variable->next = local_variables;
-      local_variables = local_variable;
+      local_variable->offset = scope->local_variable == NULL ? 8 : scope->local_variable->offset + 8;
+      local_variable->next = scope->local_variable;
+      scope->local_variable = local_variable;
     }
-    node->value = local_variable->offset;
+    node->offset = local_variable->offset;
   }
   return node;
 }

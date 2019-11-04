@@ -8,7 +8,7 @@ void generate(Node *node);
 
 void generate_local_variable_address(Node *node) {
   printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->value);
+  printf("  sub rax, %d\n", node->offset);
   printf("  push rax\n");
 }
 
@@ -98,7 +98,11 @@ void generate_function_definition(Node *node) {
   printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");
+  int local_variables_count = 0;
+  for (LocalVariable *variable = node->function_definition.scope->local_variable; variable != NULL; variable = variable->next) {
+    local_variables_count++;
+  }
+  printf("  sub rsp, %i\n", local_variables_count * 8);
   generate(node->function_definition.block);
 }
 
