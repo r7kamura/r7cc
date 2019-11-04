@@ -192,10 +192,8 @@ void generate_return(Node *node) {
 
 void generate_statement(Node *node) {
   generate(node->lhs);
-  if (node->rhs) {
-    printf("  pop rax\n");
-    generate(node->rhs);
-  }
+  printf("  pop rax\n");
+  generate(node->rhs);
 }
 
 void generate_subtract(Node *node) {
