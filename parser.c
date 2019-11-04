@@ -38,15 +38,7 @@ LocalVariable *local_variables;
 
 Token *token;
 
-bool consume(char *string) {
-  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && strlen(string) == token->length && !memcmp(token->string, string, token->length)) {
-    token = token->next;
-    return true;
-  }
-  return false;
-}
-
-bool consume_token_type(TokenType type) {
+bool consume(TokenType type) {
   if (token->type == type) {
     token = token->next;
     return true;
@@ -58,11 +50,11 @@ bool at_eof() {
   return token->type == TOKEN_TYPE_EOF;
 }
 
-void expect(char *string) {
-  if (token->type == TOKEN_TYPE_RESERVED_SYMBOL && strlen(string) == token->length && !memcmp(token->string, string, token->length)) {
+void expect(TokenType type) {
+  if (token->type == type) {
     token = token->next;
   } else {
-    report_error(token->string, "Expected '%s'", string);
+    report_error(token->string, "Not-expected token type.");
   }
 }
 
@@ -140,15 +132,15 @@ Node *program() {
 //   | statement_block
 //   | statement_expression
 Node *statement() {
-  if (consume_token_type(TOKEN_TYPE_RETURN)) {
+  if (consume(TOKEN_TYPE_RETURN)) {
     return statement_return();
-  } else if (consume_token_type(TOKEN_TYPE_FOR)) {
+  } else if (consume(TOKEN_TYPE_FOR)) {
     return statement_for();
-  } else if (consume_token_type(TOKEN_TYPE_IF)) {
+  } else if (consume(TOKEN_TYPE_IF)) {
     return statement_if();
-  } else if (consume_token_type(TOKEN_TYPE_WHILE)) {
+  } else if (consume(TOKEN_TYPE_WHILE)) {
     return statement_while();
-  } else if (consume("{")) {
+  } else if (consume(TOKEN_TYPE_BRACKET_LEFT)) {
     return statement_block();
   } else {
     return statement_expression();
@@ -159,7 +151,7 @@ Node *statement() {
 Node *statement_block() {
   Node *node = generate_branch_node(NODE_TYPE_BLOCK, NULL, NULL);
   Node *head = node;
-  while (!consume("}")) {
+  while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
     node->rhs = generate_branch_node(NODE_TYPE_STATEMENT, statement(), NULL);
     node = node->rhs;
   }
@@ -169,36 +161,36 @@ Node *statement_block() {
 // statement_expression = expression ";"
 Node *statement_expression() {
   Node *node = expression();
-  expect(";");
+  expect(TOKEN_TYPE_SEMICOLON);
   return node;
 }
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
 Node *statement_for() {
-  expect("(");
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *initialization;
-  if (consume(";")) {
+  if (consume(TOKEN_TYPE_SEMICOLON)) {
     initialization = NULL;
   } else {
     initialization = expression();
-    expect(";");
+    expect(TOKEN_TYPE_SEMICOLON);
   }
 
   Node *condition;
-  if (consume(";")) {
+  if (consume(TOKEN_TYPE_SEMICOLON)) {
     condition = NULL;
   } else {
     condition = expression();
-    expect(";");
+    expect(TOKEN_TYPE_SEMICOLON);
   }
 
   Node *afterthrough;
-  if (consume(";")) {
+  if (consume(TOKEN_TYPE_SEMICOLON)) {
     afterthrough = NULL;
   } else {
     afterthrough = expression();
   }
-  expect(")");
+  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
 
   return generate_branch_node(
       NODE_TYPE_FOR,
@@ -214,9 +206,9 @@ Node *statement_for() {
 
 // statement_if = "if" "(" expression ")" statement ("else" statement)?
 Node *statement_if() {
-  expect("(");
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *node_if_expression = expression();
-  expect(")");
+  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   Node *node_if_statement = statement();
   Node *node_if = generate_branch_node(NODE_TYPE_IF, node_if_expression, node_if_statement);
   Node *node_else = NULL;
@@ -230,15 +222,15 @@ Node *statement_if() {
 // statement_return = "return" expression ";"
 Node *statement_return() {
   Node *node = generate_branch_node(NODE_TYPE_RETURN, expression(), NULL);
-  expect(";");
+  expect(TOKEN_TYPE_SEMICOLON);
   return node;
 }
 
 // statement_while = "while" "(" expression ")" statement
 Node *statement_while() {
-  expect("(");
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
   Node *condition = expression();
-  expect(")");
+  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   return generate_branch_node(NODE_TYPE_WHILE, condition, statement());
 }
 
@@ -250,7 +242,7 @@ Node *expression() {
 // assign = equality ("=" assign)?
 Node *assign() {
   Node *node = equality();
-  if (consume("=")) {
+  if (consume(TOKEN_TYPE_ASSIGN)) {
     node = generate_branch_node(NODE_TYPE_ASSIGN, node, assign());
   }
   return node;
@@ -261,9 +253,9 @@ Node *equality() {
   Node *node = relational();
 
   while (true) {
-    if (consume("==")) {
+    if (consume(TOKEN_TYPE_EQ)) {
       node = generate_branch_node(NODE_TYPE_EQ, node, relational());
-    } else if (consume("!=")) {
+    } else if (consume(TOKEN_TYPE_NE)) {
       node = generate_branch_node(NODE_TYPE_NE, node, relational());
     } else {
       return node;
@@ -276,13 +268,13 @@ Node *relational() {
   Node *node = add_or_subtract();
 
   while (true) {
-    if (consume("<")) {
+    if (consume(TOKEN_TYPE_LT)) {
       node = generate_branch_node(NODE_TYPE_LT, node, add_or_subtract());
-    } else if (consume("<=")) {
+    } else if (consume(TOKEN_TYPE_LE)) {
       node = generate_branch_node(NODE_TYPE_LE, node, add_or_subtract());
-    } else if (consume(">")) {
+    } else if (consume(TOKEN_TYPE_GT)) {
       node = generate_branch_node(NODE_TYPE_LT, add_or_subtract(), node);
-    } else if (consume(">=")) {
+    } else if (consume(TOKEN_TYPE_GE)) {
       node = generate_branch_node(NODE_TYPE_LE, add_or_subtract(), node);
     } else {
       return node;
@@ -295,9 +287,9 @@ Node *add_or_subtract() {
   Node *node = multiply_or_devide();
 
   while (true) {
-    if (consume("+")) {
+    if (consume(TOKEN_TYPE_ADD)) {
       node = generate_branch_node(NODE_TYPE_ADD, node, multiply_or_devide());
-    } else if (consume("-")) {
+    } else if (consume(TOKEN_TYPE_SUBTRACT)) {
       node = generate_branch_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
     } else {
       return node;
@@ -310,9 +302,9 @@ Node *multiply_or_devide() {
   Node *node = unary();
 
   while (true) {
-    if (consume("*")) {
+    if (consume(TOKEN_TYPE_MULTIPLY)) {
       node = generate_branch_node(NODE_TYPE_MULTIPLY, node, unary());
-    } else if (consume("/")) {
+    } else if (consume(TOKEN_TYPE_DIVIDE)) {
       node = generate_branch_node(NODE_TYPE_DIVIDE, node, unary());
     } else {
       return node;
@@ -322,7 +314,7 @@ Node *multiply_or_devide() {
 
 // unary = ("+" | "-")? primary
 Node *unary() {
-  if (consume("-")) {
+  if (consume(TOKEN_TYPE_SUBTRACT)) {
     return generate_branch_node(NODE_TYPE_SUBTRACT, generate_leaf_node(0), primary());
   } else {
     return primary();
@@ -331,9 +323,9 @@ Node *unary() {
 
 // primary = number | identifier | "(" expression ")"
 Node *primary() {
-  if (consume("(")) {
+  if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
     Node *node = expression();
-    expect(")");
+    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
     return node;
   } else if (token->type == TOKEN_TYPE_IDENTIFIER) {
     Node *node = generate_local_variable_node(token);
