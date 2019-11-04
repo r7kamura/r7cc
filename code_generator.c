@@ -44,7 +44,7 @@ void generate_code_for_if_only(Node *node) {
   int count = label_counter++;
   printf("  je .Lend%i\n", count);
   generate_code_for_expression(node->rhs);
-  printf(".Lend%i:", count);
+  printf(".Lend%i:\n", count);
 }
 
 void generate_code_for_if_and_else(Node *node) {
@@ -55,9 +55,9 @@ void generate_code_for_if_and_else(Node *node) {
   printf("  je .Lelse%i\n", label_count);
   generate_code_for_expression(node->lhs->rhs);
   printf("  jmp .Lend%i\n", label_count);
-  printf(".Lelse%i:", label_count);
+  printf(".Lelse%i:\n", label_count);
   generate_code_for_expression(node->rhs);
-  printf(".Lend%i:", label_count);
+  printf(".Lend%i:\n", label_count);
 }
 
 void generate_code_for_for(Node *node) {
