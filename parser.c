@@ -70,7 +70,7 @@ void expect(TokenType type) {
   if (token->type == type) {
     token = token->next;
   } else {
-    report_error(token->string, "Not-expected token type.");
+    report_error(token->string, "Unexpected token type.");
   }
 }
 
