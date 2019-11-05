@@ -2,6 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// System V AMD64 ABI.
+static char *integer_parameter_register_names[] = {
+    "rdi",
+    "rsi",
+    "rdx",
+    "rcx",
+    "r8",
+    "r9"};
+
 int label_counter;
 
 void generate(Node *node);
@@ -74,6 +83,14 @@ void generate_for(Node *node) {
 }
 
 void generate_function_call(Node *node) {
+  int parameters_count = 0;
+  for (Nodes *nodes = node->function_call.parameters; nodes != NULL; nodes = nodes->next) {
+    generate(nodes->node);
+    parameters_count++;
+  }
+  while (parameters_count--) {
+    printf("  pop %s\n", integer_parameter_register_names[parameters_count]);
+  }
   int label_count = label_counter++;
   printf("  mov rax, rsp\n");
   printf("  and rax, 15\n");
@@ -93,13 +110,20 @@ void generate_function_call(Node *node) {
 void generate_function_definition(Node *node) {
   printf(".global %.*s\n", node->function_definition.name_length, node->function_definition.name);
   printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
+
   int local_variables_count = 0;
   for (LocalVariable *variable = node->function_definition.scope->local_variable; variable != NULL; variable = variable->next) {
     local_variables_count++;
   }
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
   printf("  sub rsp, %i\n", local_variables_count * 8);
+
+  int i = 0;
+  for (Nodes *nodes = node->function_definition.parameters; nodes != NULL; nodes = nodes->next) {
+    printf("  mov [rbp-%d], %s\n", nodes->node->offset, integer_parameter_register_names[i++]);
+  }
+
   generate(node->function_definition.block);
 }
 
