@@ -15,6 +15,6 @@ format:
 test: cc7
 	./test.sh
 
-$(OBJECTS): cc7.h
+$(OBJECTS): $(wildcard *.h)
 
 .PHONY: clean format test

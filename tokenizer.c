@@ -1,9 +1,9 @@
-#include "cc7.h"
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "tokenizer.h"
+#include <ctype.h>   // isdigit, isspace
+#include <stdbool.h> // bool
+#include <stdio.h>   // fprintf
+#include <stdlib.h>  // exit, strtol
+#include <string.h>  // memcmp, strlen
 
 Token *new_token(TokenType type, char *begin, int length) {
   Token *token = calloc(1, sizeof(Token));

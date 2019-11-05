@@ -1,0 +1,40 @@
+#pragma once
+
+typedef enum {
+  TOKEN_TYPE_ADD,
+  TOKEN_TYPE_ASSIGN,
+  TOKEN_TYPE_BRACKET_LEFT,
+  TOKEN_TYPE_BRACKET_RIGHT,
+  TOKEN_TYPE_DIVIDE,
+  TOKEN_TYPE_ELSE,
+  TOKEN_TYPE_EOF,
+  TOKEN_TYPE_EQ,
+  TOKEN_TYPE_FOR,
+  TOKEN_TYPE_GE,
+  TOKEN_TYPE_GT,
+  TOKEN_TYPE_IDENTIFIER,
+  TOKEN_TYPE_IF,
+  TOKEN_TYPE_LE,
+  TOKEN_TYPE_LT,
+  TOKEN_TYPE_MULTIPLY,
+  TOKEN_TYPE_NE,
+  TOKEN_TYPE_NUMBER,
+  TOKEN_TYPE_PARENTHESIS_LEFT,
+  TOKEN_TYPE_PARENTHESIS_RIGHT,
+  TOKEN_TYPE_RETURN,
+  TOKEN_TYPE_SEMICOLON,
+  TOKEN_TYPE_SUBTRACT,
+  TOKEN_TYPE_WHILE,
+} TokenType;
+
+typedef struct Token Token;
+
+struct Token {
+  TokenType type;
+  Token *next;
+  char *string;
+  int length;
+  int value;
+};
+
+Token *tokenize();

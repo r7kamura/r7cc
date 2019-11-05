@@ -1,5 +1,6 @@
-#include "cc7.h"
-#include <stdarg.h>
+#include "parser.h"
+#include "tokenizer.h" // Token, TokenType
+#include <stdarg.h>    // va_list
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,16 +42,10 @@ char *begin;
 
 Scope *scope;
 
-void report_error(char *location, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-
-  int position = location - begin;
+void error(char *position, char *message) {
+  int index = position - begin;
   fprintf(stderr, "%s\n", begin);
-  fprintf(stderr, "%*s", position, "");
-  fprintf(stderr, "^ ");
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
+  fprintf(stderr, "%*s^ %s\n", index, "", message);
   exit(1);
 }
 
@@ -65,18 +60,16 @@ Token *consume(TokenType type) {
 }
 
 void expect(TokenType type) {
-  if (token->type == type) {
-    token = token->next;
-  } else {
-    report_error(token->string, "Unexpected token type.");
+  if (token->type != type) {
+    error(token->string, "Unexpected token type.");
   }
+  token = token->next;
 }
 
 int expect_number() {
   if (token->type != TOKEN_TYPE_NUMBER) {
-    report_error(token->string, "Expected a number.");
+    error(token->string, "Expected number token.");
   }
-
   int value = token->value;
   token = token->next;
   return value;

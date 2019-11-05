@@ -1,6 +1,7 @@
-#include "cc7.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "code_generator.h" // generator
+#include "parser.h"         // parse
+#include <stdio.h>          // fprintf
+#include <stdlib.h>         // exit
 
 int main(int argc, char **argv) {
   if (argc != 2) {
