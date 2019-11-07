@@ -91,6 +91,7 @@ void generate_function_call(Node *node) {
 }
 
 void generate_function_definition(Node *node) {
+  printf(".global %.*s\n", node->function_definition.name_length, node->function_definition.name);
   printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
@@ -179,7 +180,6 @@ void generate_number(Node *node) {
 
 void generate_program(Node *node) {
   printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
   for (Nodes *nodes = node->program.nodes; nodes != NULL; nodes = nodes->next) {
     generate(nodes->node);
   }
