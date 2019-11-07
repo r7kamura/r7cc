@@ -2,5 +2,6 @@ version: '3.2'
 services:
   base:
     build: .
+    image: docker.pkg.github.com/r7kamura/cc7/cc7_base:latest
     volumes:
       - .:/app:cached

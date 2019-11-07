@@ -1,5 +1,7 @@
 # cc7
 
+![](https://github.com/r7kamura/cc7/workflows/tests/badge.svg)
+
 https://www.sigbus.info/compilerbook をやって C 言語を勉強しています。
 
 ## Development
