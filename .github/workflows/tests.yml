@@ -18,6 +18,7 @@ jobs:
           GITHUB_PACKAGE_REGISTRY_TOKEN: ${{ secrets.GITHUB_PACKAGE_REGISTRY_TOKEN }}
       - run: docker-compose pull
       - run: docker-compose run --rm base make format
+      - run: git diff --color --exit-code
 
   test:
     runs-on: ubuntu-18.04
