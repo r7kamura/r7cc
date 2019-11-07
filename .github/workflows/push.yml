@@ -13,10 +13,22 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1.0.0
-      - run: docker login docker.pkg.github.com -u r7kamura -p "${GITHUB_PACKAGE_REGISTRY_TOKEN}"
+      - name: Setup docker image
+        run: |
+          if [ "${BRANCH}" = "master" ]; then
+            DIFF_TARGET="HEAD^"
+          else
+            DIFF_TARGET="origin/master"
+          fi
+          if git diff --name-only ${DIFF_TARGET} | grep -e "^Dockerfile$"; then
+            docker-compose build
+          else
+            docker login docker.pkg.github.com -u r7kamura -p "${GITHUB_PACKAGE_REGISTRY_TOKEN}"
+            docker-compose pull
+          fi
         env:
+          BRANCH: ${{ github.ref }}
           GITHUB_PACKAGE_REGISTRY_TOKEN: ${{ secrets.GITHUB_PACKAGE_REGISTRY_TOKEN }}
-      - run: docker-compose pull
       - run: docker-compose run --rm base make format
       - run: git diff --color --exit-code
 
