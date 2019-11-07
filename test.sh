@@ -92,4 +92,7 @@ assert 6 "multiply(a, b) { return a * b; } main() { return multiply(2, 3); }"
 # recursive function
 assert 8 "fib(a) { if (a < 2) return a; return fib(a - 2) + fib(a - 1); } main() { return fib(6); }"
 
+# address and dereference
+assert 2 "main() { a = 2; b = &a; return *b; }"
+
 echo OK

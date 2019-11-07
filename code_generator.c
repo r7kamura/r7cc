@@ -30,6 +30,10 @@ void generate_add(Node *node) {
   printf("  push rax\n");
 }
 
+void generate_address(Node *node) {
+  generate_local_variable_address(node->node);
+}
+
 void generate_assign(Node *node) {
   generate_local_variable_address(node->binary.lhs);
   generate(node->binary.rhs);
@@ -43,6 +47,13 @@ void generate_block(Node *node) {
   for (Nodes *nodes = node->block.nodes; nodes != NULL; nodes = nodes->next) {
     generate(nodes->node);
   }
+}
+
+void generate_dereference(Node *node) {
+  generate(node->node);
+  printf("  pop rax\n");
+  printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
 }
 
 void generate_divide(Node *node) {
@@ -247,11 +258,17 @@ void generate(Node *node) {
   case NODE_TYPE_ADD:
     generate_add(node);
     break;
+  case NODE_TYPE_ADDRESS:
+    generate_address(node);
+    break;
   case NODE_TYPE_ASSIGN:
     generate_assign(node);
     break;
   case NODE_TYPE_BLOCK:
     generate_block(node);
+    break;
+  case NODE_TYPE_DEREFERENCE:
+    generate_dereference(node);
     break;
   case NODE_TYPE_DIVIDE:
     generate_divide(node);
