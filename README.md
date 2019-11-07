@@ -1,6 +1,6 @@
-# cc7
+# r7cc
 
-[![](https://github.com/r7kamura/cc7/workflows/push/badge.svg)](https://github.com/r7kamura/cc7/actions)
+[![](https://github.com/r7kamura/r7cc/workflows/push/badge.svg)](https://github.com/r7kamura/r7cc/actions)
 
 https://www.sigbus.info/compilerbook をやって C 言語を勉強しています。
 
@@ -10,7 +10,7 @@ Ubuntu 上でコンパイルするために、docker-compose で base という�
 
 ### Compile
 
-コンパイルすると、入力文字列を元にアセンブリを標準出力する cc7 という実行ファイルができます。
+コンパイルすると、入力文字列を元にアセンブリを標準出力する r7cc という実行ファイルができます。
 
 ```
 docker-compose run --rm base make

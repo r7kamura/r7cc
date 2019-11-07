@@ -3,17 +3,17 @@ CFLAGS := -std=c11 -g -static
 SOURCES := $(wildcard *.c)
 OBJECTS := $(SOURCES:.c=.o)
 
-cc7: $(OBJECTS)
-	$(CC) -o cc7 $(OBJECTS) $(LDFLAGS)
+r7cc: $(OBJECTS)
+	$(CC) -o r7cc $(OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f cc7 *.o tmp*
+	rm -f r7cc *.o tmp*
 
 format:
 	clang-format -i *.h *.c
 	git diff --color --exit-code
 
-test: cc7
+test: r7cc
 	./test.sh
 
 $(OBJECTS): $(wildcard *.h)
