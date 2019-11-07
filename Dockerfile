@@ -6,4 +6,5 @@ RUN apt update \
   && apt install --no-install-recommends --yes \
     build-essential \
     clang-format \
+    git \
   && rm -rf /var/lib/apt/lists/*
