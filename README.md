@@ -2,4 +2,4 @@
 
 [![](https://github.com/r7kamura/r7cc/workflows/push/badge.svg)](https://github.com/r7kamura/r7cc/actions)
 
-勉強用に開発している C コンパイラです。
+A small C compiler, just for studying the C programming language with fun.
