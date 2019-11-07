@@ -11,6 +11,7 @@ clean:
 
 format:
 	clang-format -i *.h *.c
+	git diff --color --exit-code
 
 test: cc7
 	./test.sh
