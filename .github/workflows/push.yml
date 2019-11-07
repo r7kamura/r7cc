@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v1.0.0
       - name: Setup docker image
         run: |
-          if [ "${BRANCH}" = "master" ]; then
+          if [ "${BRANCH}" = "refs/heads/master" ]; then
             DIFF_TARGET="HEAD^"
           else
             DIFF_TARGET="origin/master"
