@@ -22,10 +22,6 @@ void generate_add(Node *node) {
 }
 
 void generate_assign(Node *node) {
-  if (node->binary.lhs->type != NODE_TYPE_LOCAL_VARIABLE) {
-    fprintf(stderr, "Left value in assignment must be a local variable.");
-    exit(1);
-  }
   generate_local_variable_address(node->binary.lhs);
   generate(node->binary.rhs);
   printf("  pop rdi\n");

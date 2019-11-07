@@ -269,6 +269,10 @@ Node *expression() {
 Node *assign() {
   Node *node = equality();
   if (consume(TOKEN_TYPE_ASSIGN)) {
+    if (node->type != NODE_TYPE_LOCAL_VARIABLE) {
+      fprintf(stderr, "Left value in assignment must be a local variable.");
+      exit(1);
+    }
     node = new_binary_node(NODE_TYPE_ASSIGN, node, assign());
   }
   return node;
