@@ -70,6 +70,9 @@ Token *tokenize(char *input) {
     } else if (*p == '=') {
       current = current->next = new_token(TOKEN_TYPE_ASSIGN, p, 1);
       p++;
+    } else if (*p == ',') {
+      current = current->next = new_token(TOKEN_TYPE_COMMA, p, 1);
+      p++;
     } else if (*p == '<') {
       current = current->next = new_token(TOKEN_TYPE_LT, p, 1);
       p++;

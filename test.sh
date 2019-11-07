@@ -86,4 +86,10 @@ assert 3 "main() { a = 0; while (a < 3) a = a + 1; return a; }"
 # function definition, function call
 assert 2 "a() { return 2; } main() { return a(); }"
 
+# function parameters
+assert 6 "multiply(a, b) { return a * b; } main() { return multiply(2, 3); }"
+
+# recursive function
+assert 8 "fib(a) { if (a < 2) return a; return fib(a - 2) + fib(a - 1); } main() { return fib(6); }"
+
 echo OK

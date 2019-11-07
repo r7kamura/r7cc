@@ -75,6 +75,15 @@ int expect_number() {
   return value;
 }
 
+LocalVariable *find_local_variable(Token *token) {
+  for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
+    if (local_variable->length == token->length && !memcmp(local_variable->name, token->string, local_variable->length)) {
+      return local_variable;
+    }
+  }
+  return NULL;
+}
+
 Scope *new_scope(Scope *parent) {
   Scope *scope_ = calloc(1, sizeof(Scope));
   scope_->parent = parent;
@@ -100,31 +109,45 @@ Node *new_number_node(int value) {
   return node;
 }
 
+Node *new_local_variable_node(Token *identifier) {
+  Node *node = new_node(NODE_TYPE_LOCAL_VARIABLE);
+  LocalVariable *local_variable = find_local_variable(identifier);
+  if (local_variable == NULL) {
+    local_variable = calloc(1, sizeof(LocalVariable));
+    local_variable->name = identifier->string;
+    local_variable->length = identifier->length;
+    local_variable->offset = scope->local_variable == NULL ? 8 : scope->local_variable->offset + 8;
+    local_variable->next = scope->local_variable;
+    scope->local_variable = local_variable;
+  }
+  node->offset = local_variable->offset;
+}
+
 Nodes *new_nodes() {
   return calloc(1, sizeof(Nodes));
 }
 
-LocalVariable *find_local_variable(Token *token) {
-  for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
-    if (local_variable->length == token->length && !memcmp(local_variable->name, token->string, local_variable->length)) {
-      return local_variable;
-    }
-  }
-  return NULL;
-}
-
-// function_definition = identifier "(" ")" statement_block
+// function_definition = identifier "(" (identifier ("," identifier)*)? ")" statement_block
 Node *function_definition() {
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
   Node *node = new_node(NODE_TYPE_FUNCTION_DEFINITION);
   node->function_definition.name = identifier->string;
   node->function_definition.name_length = identifier->length;
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
-  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+
   scope = new_scope(scope);
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
+  while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = new_local_variable_node(consume(TOKEN_TYPE_IDENTIFIER));
+  }
+  node->function_definition.parameters = head->next;
   node->function_definition.block = statement_block();
   node->function_definition.scope = scope;
   scope = scope->parent;
+
   return node;
 }
 
@@ -352,27 +375,24 @@ Node *unary() {
   }
 }
 
-// function_call_or_local_variable = identifier ("(" ")")?
+// function_call_or_local_variable = identifier ("(" (expression ("," expression)*)? ")")?
 Node *function_call_or_local_variable() {
   Node *node;
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
   if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
-    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+    Nodes *head = new_nodes();
+    Nodes *nodes = head;
+    while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
+      nodes->next = new_nodes();
+      nodes = nodes->next;
+      nodes->node = expression();
+    }
     node = new_node(NODE_TYPE_FUNCTION_CALL);
     node->function_call.name = identifier->string;
     node->function_call.name_length = identifier->length;
+    node->function_call.parameters = head->next;
   } else {
-    node = new_node(NODE_TYPE_LOCAL_VARIABLE);
-    LocalVariable *local_variable = find_local_variable(identifier);
-    if (local_variable == NULL) {
-      local_variable = calloc(1, sizeof(LocalVariable));
-      local_variable->name = identifier->string;
-      local_variable->length = identifier->length;
-      local_variable->offset = scope->local_variable == NULL ? 8 : scope->local_variable->offset + 8;
-      local_variable->next = scope->local_variable;
-      scope->local_variable = local_variable;
-    }
-    node->offset = local_variable->offset;
+    node = new_local_variable_node(identifier);
   }
   return node;
 }

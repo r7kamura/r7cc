@@ -76,11 +76,13 @@ struct Node {
     struct {
       char *name;
       int name_length;
+      Nodes *parameters;
     } function_call;
 
     struct {
       char *name;
       int name_length;
+      Nodes *parameters;
       Node *block;
       Scope *scope;
     } function_definition;
