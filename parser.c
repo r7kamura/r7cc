@@ -84,6 +84,7 @@ Scope *new_scope(Scope *parent) {
 Node *new_node(NodeType type) {
   Node *node = calloc(1, sizeof(Node));
   node->type = type;
+  return node;
 }
 
 Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
