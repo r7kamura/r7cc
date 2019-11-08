@@ -341,9 +341,9 @@ Node *add_or_subtract() {
   Node *node = multiply_or_devide();
 
   while (true) {
-    if (consume(TOKEN_TYPE_ADD)) {
+    if (consume(TOKEN_TYPE_PLUS)) {
       node = new_binary_node(NODE_TYPE_ADD, node, multiply_or_devide());
-    } else if (consume(TOKEN_TYPE_SUBTRACT)) {
+    } else if (consume(TOKEN_TYPE_MINUS)) {
       node = new_binary_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
     } else {
       return node;
@@ -356,9 +356,9 @@ Node *multiply_or_devide() {
   Node *node = unary();
 
   while (true) {
-    if (consume(TOKEN_TYPE_MULTIPLY)) {
+    if (consume(TOKEN_TYPE_ASTERISK)) {
       node = new_binary_node(NODE_TYPE_MULTIPLY, node, unary());
-    } else if (consume(TOKEN_TYPE_DIVIDE)) {
+    } else if (consume(TOKEN_TYPE_SLASH)) {
       node = new_binary_node(NODE_TYPE_DIVIDE, node, unary());
     } else {
       return node;
@@ -368,7 +368,7 @@ Node *multiply_or_devide() {
 
 // unary = ("+" | "-")? primary
 Node *unary() {
-  if (consume(TOKEN_TYPE_SUBTRACT)) {
+  if (consume(TOKEN_TYPE_MINUS)) {
     return new_binary_node(NODE_TYPE_SUBTRACT, new_number_node(0), primary());
   } else {
     return primary();
