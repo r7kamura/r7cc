@@ -53,16 +53,16 @@ Token *tokenize(char *input) {
       current = current->next = new_token(TOKEN_TYPE_GE, p, 2);
       p += 2;
     } else if (*p == '+') {
-      current = current->next = new_token(TOKEN_TYPE_ADD, p, 1);
+      current = current->next = new_token(TOKEN_TYPE_PLUS, p, 1);
       p++;
     } else if (*p == '-') {
-      current = current->next = new_token(TOKEN_TYPE_SUBTRACT, p, 1);
+      current = current->next = new_token(TOKEN_TYPE_MINUS, p, 1);
       p++;
     } else if (*p == '*') {
-      current = current->next = new_token(TOKEN_TYPE_MULTIPLY, p, 1);
+      current = current->next = new_token(TOKEN_TYPE_ASTERISK, p, 1);
       p++;
     } else if (*p == '/') {
-      current = current->next = new_token(TOKEN_TYPE_DIVIDE, p, 1);
+      current = current->next = new_token(TOKEN_TYPE_SLASH, p, 1);
       p++;
     } else if (*p == ';') {
       current = current->next = new_token(TOKEN_TYPE_SEMICOLON, p, 1);
