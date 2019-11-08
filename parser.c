@@ -133,8 +133,15 @@ Nodes *new_nodes() {
   return calloc(1, sizeof(Nodes));
 }
 
-// function_definition = identifier "(" (identifier ("," identifier)*)? ")" statement_block
+// type = "int"
+Node *type() {
+  expect(TOKEN_TYPE_IDENTIFIER);
+  return new_node(NODE_TYPE_TYPE);
+}
+
+// function_definition = type identifier "(" (identifier ("," identifier)*)? ")" statement_block
 Node *function_definition() {
+  type();
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
   Node *node = new_node(NODE_TYPE_FUNCTION_DEFINITION);
   node->function_definition.name = identifier->string;
@@ -147,6 +154,7 @@ Node *function_definition() {
   while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
+    type();
     nodes->node = new_local_variable_node(consume(TOKEN_TYPE_IDENTIFIER));
   }
   node->function_definition.parameters = head->next;
