@@ -103,6 +103,12 @@ Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
   return node;
 }
 
+Node *new_unary_node(NodeType type, Node *child) {
+  Node *node = new_node(type);
+  node->node = child;
+  return node;
+}
+
 Node *new_number_node(int value) {
   Node *node = new_node(NODE_TYPE_NUMBER);
   node->value = value;
@@ -366,11 +372,24 @@ Node *multiply_or_devide() {
   }
 }
 
-// unary = ("+" | "-")? primary
+// unary = "+"? primary
+//       | "-"? primary
+//       | "*" unary
+//       | "&" unary
 Node *unary() {
-  if (consume(TOKEN_TYPE_MINUS)) {
+  switch (token->type) {
+  case TOKEN_TYPE_AMPERSAND:
+    token = token->next;
+    return new_unary_node(NODE_TYPE_ADDRESS, unary());
+  case TOKEN_TYPE_ASTERISK:
+    token = token->next;
+    return new_unary_node(NODE_TYPE_DEREFERENCE, unary());
+  case TOKEN_TYPE_MINUS:
+    token = token->next;
     return new_binary_node(NODE_TYPE_SUBTRACT, new_number_node(0), primary());
-  } else {
+  case TOKEN_TYPE_PLUS:
+    token = token->next;
+  default:
     return primary();
   }
 }

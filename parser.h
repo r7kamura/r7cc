@@ -25,9 +25,11 @@ struct Scope {
 
 typedef enum {
   NODE_TYPE_ADD,
+  NODE_TYPE_ADDRESS,
   NODE_TYPE_ASSIGN,
   NODE_TYPE_BLOCK,
   NODE_TYPE_DIVIDE,
+  NODE_TYPE_DEREFERENCE,
   NODE_TYPE_EQ,
   NODE_TYPE_FOR,
   NODE_TYPE_FUNCTION_CALL,
@@ -56,6 +58,8 @@ struct Node {
     int value;
 
     int offset;
+
+    Node *node;
 
     struct {
       Node *lhs;
