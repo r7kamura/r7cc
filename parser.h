@@ -1,14 +1,14 @@
 #pragma once
 
 typedef enum {
-  TYPE_TYPE_INTEGER,
-  TYPE_TYPE_POINTER,
-} TypeType;
+  TYPE_KIND_INTEGER,
+  TYPE_KIND_POINTER,
+} TypeKind;
 
 typedef struct Type Type;
 
 struct Type {
-  TypeType type;
+  TypeKind kind;
   Type *pointer;
 };
 

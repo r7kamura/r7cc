@@ -42,7 +42,7 @@ char *begin;
 
 Scope *scope;
 
-Type *int_type = &(Type){.type = TYPE_TYPE_INTEGER};
+Type *int_type = &(Type){.kind = TYPE_KIND_INTEGER};
 
 void error(char *position, char *message) {
   int index = position - begin;
@@ -157,7 +157,7 @@ Nodes *new_nodes() {
 
 Type *new_pointer_type(Type *pointer) {
   Type *type = calloc(1, sizeof(Type));
-  type->type = TYPE_TYPE_POINTER;
+  type->kind = TYPE_KIND_POINTER;
   type->pointer = pointer;
   return type;
 }
