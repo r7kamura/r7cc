@@ -9,8 +9,10 @@ typedef struct Type Type;
 
 struct Type {
   TypeKind kind;
-  Type *pointer;
+  Type *pointed_type;
 };
+
+int size_of_type(Type *type);
 
 typedef struct LocalVariable LocalVariable;
 
@@ -33,9 +35,11 @@ struct Scope {
 
 typedef enum {
   NODE_KIND_ADD,
+  NODE_KIND_ADD_POINTER,
   NODE_KIND_ADDRESS,
   NODE_KIND_ASSIGN,
   NODE_KIND_BLOCK,
+  NODE_KIND_DIFF_POINTER,
   NODE_KIND_DIVIDE,
   NODE_KIND_DEREFERENCE,
   NODE_KIND_EQ,
@@ -52,6 +56,7 @@ typedef enum {
   NODE_KIND_PROGRAM,
   NODE_KIND_RETURN,
   NODE_KIND_SUBTRACT,
+  NODE_KIND_SUBTRACT_POINTER,
   NODE_KIND_TYPE,
   NODE_KIND_WHILE,
 } NodeKind;
@@ -62,6 +67,8 @@ typedef struct Node Node;
 
 struct Node {
   NodeKind kind;
+
+  Type *type;
 
   union {
     int value;

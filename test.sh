@@ -98,6 +98,18 @@ assert 2 "int main() { int a; int b; a = 2; b = &a; return *b; }"
 # initializer
 assert 2 "int main() { int a = 2; return a; }"
 
+# pointer return-value
 assert 1 "int *f() { int a = 0; int *b = &a; return b; } int main() { return 1; }"
+
+# pointer add
+assert 1 "int main() { int a = 1; int b = 2; return *(&b + 1); }"
+assert 1 "int main() { int a = 1; int b = 2; return *(1 + &b); }"
+
+# pointer subtract
+assert 2 "int main() { int a = 1; int b = 2; return *(&a - 1); }"
+assert 1 "int main() { int a = 1; return *((&a + 1) - 1); }"
+
+# pointer diff
+assert 1 "int main() { int a = 10; return (&a + 1) - &a; }"
 
 echo OK
