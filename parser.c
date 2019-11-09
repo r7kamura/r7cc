@@ -42,6 +42,8 @@ char *begin;
 
 Scope *scope;
 
+Type *int_type = &(Type){.type = TYPE_TYPE_INTEGER};
+
 void error(char *position, char *message) {
   int index = position - begin;
   fprintf(stderr, "%s\n", begin);
@@ -81,8 +83,9 @@ int expect_number() {
   return value;
 }
 
-LocalVariable *new_local_variable(char *name, int name_length, LocalVariable *next) {
+LocalVariable *new_local_variable(Type *type, char *name, int name_length, LocalVariable *next) {
   LocalVariable *local_variable = calloc(1, sizeof(LocalVariable));
+  local_variable->type = type;
   local_variable->name = name;
   local_variable->name_length = name_length;
   local_variable->offset = next == NULL ? 8 : next->offset + 8;
@@ -99,14 +102,14 @@ LocalVariable *find_local_variable(char *name, int name_length) {
   return NULL;
 }
 
-LocalVariable *declare_local_variable(char *name, int name_length) {
+LocalVariable *declare_local_variable(Type *type, char *name, int name_length) {
   LocalVariable *local_variable = find_local_variable(name, name_length);
   if (local_variable != NULL) {
     fprintf(stderr, "Local variable `%.*s` is already defined.\n", name_length, name);
     exit(1);
   }
 
-  local_variable = new_local_variable(name, name_length, scope->local_variable);
+  local_variable = new_local_variable(type, name, name_length, scope->local_variable);
   scope->local_variable = local_variable;
   return local_variable;
 }
@@ -152,19 +155,31 @@ Nodes *new_nodes() {
   return calloc(1, sizeof(Nodes));
 }
 
-// type = "int"
-Node *type() {
+Type *new_pointer_type(Type *pointer) {
+  Type *type = calloc(1, sizeof(Type));
+  type->type = TYPE_TYPE_POINTER;
+  type->pointer = pointer;
+  return type;
+}
+
+// type = "int" "*"*
+Type *type_part(void) {
   expect(TOKEN_TYPE_INTEGER);
-  return new_node(NODE_TYPE_TYPE);
+  Type *type = int_type;
+  while (consume(TOKEN_TYPE_ASTERISK)) {
+    type = new_pointer_type(type);
+  }
+  return type;
 }
 
 // function_definition = type identifier "(" parameters? ")" statement_block
 // parameters = parameter ("," parameter)*
 // parameter = type identifier
 Node *function_definition() {
-  type();
+  Type *type = type_part();
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
   Node *node = new_node(NODE_TYPE_FUNCTION_DEFINITION);
+  node->function_definition.return_value_type = type;
   node->function_definition.name = identifier->string;
   node->function_definition.name_length = identifier->length;
 
@@ -175,9 +190,9 @@ Node *function_definition() {
   while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
-    type();
+    Type *type = type_part();
     Token *identifier_ = consume(TOKEN_TYPE_IDENTIFIER);
-    LocalVariable *local_variable = declare_local_variable(identifier_->string, identifier_->length);
+    LocalVariable *local_variable = declare_local_variable(type, identifier_->string, identifier_->length);
     nodes->node = new_local_variable_node(local_variable);
   }
   node->function_definition.parameters = head->next;
@@ -205,10 +220,10 @@ Node *program() {
 
 // statement_local_variable_declaration = type identifier ("=" expression)? ";"
 Node *statement_local_variable_declaration(void) {
-  type();
+  Type *type = type_part();
 
   Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
-  LocalVariable *local_variable = declare_local_variable(identifier->string, identifier->length);
+  LocalVariable *local_variable = declare_local_variable(type, identifier->string, identifier->length);
 
   Node *node;
   if (consume(TOKEN_TYPE_ASSIGN)) {
