@@ -203,15 +203,22 @@ Node *program() {
   return node;
 }
 
-// statement_local_variable_declaration = type identifier";"
+// statement_local_variable_declaration = type identifier ("=" expression)? ";"
 Node *statement_local_variable_declaration(void) {
   type();
 
   Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
-  declare_local_variable(identifier->string, identifier->length);
-  expect(TOKEN_TYPE_SEMICOLON);
+  LocalVariable *local_variable = declare_local_variable(identifier->string, identifier->length);
 
-  return NULL;
+  Node *node;
+  if (consume(TOKEN_TYPE_ASSIGN)) {
+    node = new_binary_node(NODE_TYPE_ASSIGN, new_local_variable_node(local_variable), expression());
+  } else {
+    node = NULL;
+  }
+
+  expect(TOKEN_TYPE_SEMICOLON);
+  return node;
 }
 
 // statement

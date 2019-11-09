@@ -95,4 +95,7 @@ assert 8 "int fib(int a) { if (a < 2) return a; return fib(a - 2) + fib(a - 1); 
 # address and dereference
 assert 2 "int main() { int a; int b; a = 2; b = &a; return *b; }"
 
+# initializer
+assert 2 "int main() { int a = 2; return a; }"
+
 echo OK
