@@ -62,26 +62,26 @@ assert 1 "int main() { return 1 >= 1; }"
 assert 0 "int main() { return 1 >= 2; }"
 
 # single-letter local variable
-assert 1 "int main() { a = 1; return a; }"
-assert 2 "int main() { a = 1; b = 2; return b; }"
-assert 3 "int main() { a = 1; b = 2; return a + b; }"
+assert 1 "int main() { int a; a = 1; return a; }"
+assert 2 "int main() { int a; int b; a = 1; b = 2; return b; }"
+assert 3 "int main() { int a; int b; a = 1; b = 2; return a + b; }"
 
 # multi-letter local variable
-assert 1 "int main() { foo = 1; return foo; }"
-assert 1 "int main() { foo = 1; bar = 2; return foo; }"
-assert 2 "int main() { foo = 1; bar = 2; return foo * bar; }"
+assert 1 "int main() { int foo; foo = 1; return foo; }"
+assert 1 "int main() { int foo; int bar; foo = 1; bar = 2; return foo; }"
+assert 2 "int main() { int foo; int bar; foo = 1; bar = 2; return foo * bar; }"
 
 # if
 assert 2 "int main() { if (1) return 2; }"
 assert 3 "int main() { if (0) return 2; return 3; }"
-assert 2 "int main() { if (0) a = 1; else a = 2; return a; }"
-assert 1 "int main() { if (1) a = 1; else a = 2; return a; }"
+assert 2 "int main() { int a; if (0) a = 1; else a = 2; return a; }"
+assert 1 "int main() { int a; if (1) a = 1; else a = 2; return a; }"
 
 # for
-assert 6 "int main() { b = 0; for (a = 0; a < 3; a = a + 1) b = b + 2; return b; }"
+assert 6 "int main() { int a; int b; b = 0; for (a = 0; a < 3; a = a + 1) b = b + 2; return b; }"
 
 # while
-assert 3 "int main() { a = 0; while (a < 3) a = a + 1; return a; }"
+assert 3 "int main() { int a; a = 0; while (a < 3) a = a + 1; return a; }"
 
 # function definition, function call
 assert 2 "int a() { return 2; } int main() { return a(); }"
@@ -93,6 +93,6 @@ assert 6 "int multiply(int a, int b) { return a * b; } int main() { return multi
 assert 8 "int fib(int a) { if (a < 2) return a; return fib(a - 2) + fib(a - 1); } int main() { return fib(6); }"
 
 # address and dereference
-assert 2 "int main() { a = 2; b = &a; return *b; }"
+assert 2 "int main() { int a; int b; a = 2; b = &a; return *b; }"
 
 echo OK
