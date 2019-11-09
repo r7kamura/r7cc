@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "tokenizer.h" // Token, TokenType
+#include "tokenizer.h" // Token, TokenKind
 #include <stdarg.h>    // va_list
 #include <stdbool.h>
 #include <stdio.h>
@@ -52,12 +52,12 @@ void error(char *position, char *message) {
 }
 
 bool at_type(void) {
-  return token->type == TOKEN_TYPE_INTEGER;
+  return token->kind == TOKEN_KIND_INTEGER;
 }
 
-Token *consume(TokenType type) {
+Token *consume(TokenKind type) {
   Token *token_;
-  if (token->type == type) {
+  if (token->kind == type) {
     token_ = token;
     token = token->next;
     return token_;
@@ -65,8 +65,8 @@ Token *consume(TokenType type) {
   return NULL;
 }
 
-Token *expect(TokenType type) {
-  if (token->type != type) {
+Token *expect(TokenKind type) {
+  if (token->kind != type) {
     error(token->string, "Unexpected token type.");
   }
   Token *token_ = token;
@@ -75,7 +75,7 @@ Token *expect(TokenType type) {
 }
 
 int expect_number() {
-  if (token->type != TOKEN_TYPE_NUMBER) {
+  if (token->kind != TOKEN_KIND_NUMBER) {
     error(token->string, "Expected number token.");
   }
   int value = token->value;
@@ -164,9 +164,9 @@ Type *new_pointer_type(Type *pointer) {
 
 // type = "int" "*"*
 Type *type_part(void) {
-  expect(TOKEN_TYPE_INTEGER);
+  expect(TOKEN_KIND_INTEGER);
   Type *type = int_type;
-  while (consume(TOKEN_TYPE_ASTERISK)) {
+  while (consume(TOKEN_KIND_ASTERISK)) {
     type = new_pointer_type(type);
   }
   return type;
@@ -177,21 +177,21 @@ Type *type_part(void) {
 // parameter = type identifier
 Node *function_definition() {
   Type *type = type_part();
-  Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
+  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
   Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
   node->function_definition.return_value_type = type;
   node->function_definition.name = identifier->string;
   node->function_definition.name_length = identifier->length;
 
   scope = new_scope(scope);
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
+  while (consume(TOKEN_KIND_COMMA) != NULL || consume(TOKEN_KIND_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     Type *type = type_part();
-    Token *identifier_ = consume(TOKEN_TYPE_IDENTIFIER);
+    Token *identifier_ = consume(TOKEN_KIND_IDENTIFIER);
     LocalVariable *local_variable = declare_local_variable(type, identifier_->string, identifier_->length);
     nodes->node = new_local_variable_node(local_variable);
   }
@@ -222,17 +222,17 @@ Node *program() {
 Node *statement_local_variable_declaration(void) {
   Type *type = type_part();
 
-  Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
+  Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
   LocalVariable *local_variable = declare_local_variable(type, identifier->string, identifier->length);
 
   Node *node;
-  if (consume(TOKEN_TYPE_ASSIGN)) {
+  if (consume(TOKEN_KIND_ASSIGN)) {
     node = new_binary_node(NODE_KIND_ASSIGN, new_local_variable_node(local_variable), expression());
   } else {
     node = NULL;
   }
 
-  expect(TOKEN_TYPE_SEMICOLON);
+  expect(TOKEN_KIND_SEMICOLON);
   return node;
 }
 
@@ -245,16 +245,16 @@ Node *statement_local_variable_declaration(void) {
 //   | statement_local_variable_declaration
 //   | statement_expression
 Node *statement() {
-  switch (token->type) {
-  case TOKEN_TYPE_RETURN:
+  switch (token->kind) {
+  case TOKEN_KIND_RETURN:
     return statement_return();
-  case TOKEN_TYPE_FOR:
+  case TOKEN_KIND_FOR:
     return statement_for();
-  case TOKEN_TYPE_IF:
+  case TOKEN_KIND_IF:
     return statement_if();
-  case TOKEN_TYPE_WHILE:
+  case TOKEN_KIND_WHILE:
     return statement_while();
-  case TOKEN_TYPE_BRACKET_LEFT:
+  case TOKEN_KIND_BRACKET_LEFT:
     return statement_block();
   default:
     if (at_type()) {
@@ -267,11 +267,11 @@ Node *statement() {
 
 // statement_block = "{" statement* "}"
 Node *statement_block() {
-  expect(TOKEN_TYPE_BRACKET_LEFT);
+  expect(TOKEN_KIND_BRACKET_LEFT);
   Node *node = new_node(NODE_KIND_BLOCK);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
+  while (!consume(TOKEN_KIND_BRACKET_RIGHT)) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = statement();
@@ -283,40 +283,40 @@ Node *statement_block() {
 // statement_expression = expression ";"
 Node *statement_expression() {
   Node *node = expression();
-  expect(TOKEN_TYPE_SEMICOLON);
+  expect(TOKEN_KIND_SEMICOLON);
   return node;
 }
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
 Node *statement_for() {
   Node *node = new_node(NODE_KIND_FOR);
-  expect(TOKEN_TYPE_FOR);
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_FOR);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
 
   Node *initialization;
-  if (consume(TOKEN_TYPE_SEMICOLON)) {
+  if (consume(TOKEN_KIND_SEMICOLON)) {
     initialization = NULL;
   } else {
     initialization = expression();
-    expect(TOKEN_TYPE_SEMICOLON);
+    expect(TOKEN_KIND_SEMICOLON);
   }
   node->for_statement.initialization = initialization;
 
   Node *condition;
-  if (consume(TOKEN_TYPE_SEMICOLON)) {
+  if (consume(TOKEN_KIND_SEMICOLON)) {
     condition = NULL;
   } else {
     condition = expression();
-    expect(TOKEN_TYPE_SEMICOLON);
+    expect(TOKEN_KIND_SEMICOLON);
   }
   node->for_statement.condition = condition;
 
   Node *afterthrough;
-  if (consume(TOKEN_TYPE_PARENTHESIS_RIGHT)) {
+  if (consume(TOKEN_KIND_PARENTHESIS_RIGHT)) {
     afterthrough = NULL;
   } else {
     afterthrough = expression();
-    expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+    expect(TOKEN_KIND_PARENTHESIS_RIGHT);
   }
   node->for_statement.afterthrough = afterthrough;
 
@@ -327,13 +327,13 @@ Node *statement_for() {
 
 // statement_if = "if" "(" expression ")" statement ("else" statement)?
 Node *statement_if() {
-  expect(TOKEN_TYPE_IF);
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_IF);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Node *node = new_node(NODE_KIND_IF);
   node->if_statement.condition = expression();
-  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
   node->if_statement.true_statement = statement();
-  if (consume(TOKEN_TYPE_ELSE)) {
+  if (consume(TOKEN_KIND_ELSE)) {
     node->if_statement.false_statement = statement();
   }
   return node;
@@ -341,20 +341,20 @@ Node *statement_if() {
 
 // statement_return = "return" expression ";"
 Node *statement_return() {
-  expect(TOKEN_TYPE_RETURN);
+  expect(TOKEN_KIND_RETURN);
   Node *node = new_node(NODE_KIND_RETURN);
   node->return_statement.expression = expression();
-  expect(TOKEN_TYPE_SEMICOLON);
+  expect(TOKEN_KIND_SEMICOLON);
   return node;
 }
 
 // statement_while = "while" "(" expression ")" statement
 Node *statement_while() {
-  expect(TOKEN_TYPE_WHILE);
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_WHILE);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Node *node = new_node(NODE_KIND_WHILE);
   node->while_statement.condition = expression();
-  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
   node->while_statement.statement = statement();
   return node;
 }
@@ -367,7 +367,7 @@ Node *expression() {
 // assign = equality ("=" assign)?
 Node *assign() {
   Node *node = equality();
-  if (consume(TOKEN_TYPE_ASSIGN)) {
+  if (consume(TOKEN_KIND_ASSIGN)) {
     if (node->kind != NODE_KIND_LOCAL_VARIABLE) {
       fprintf(stderr, "Left value in assignment must be a local variable.");
       exit(1);
@@ -382,9 +382,9 @@ Node *equality() {
   Node *node = relational();
 
   while (true) {
-    if (consume(TOKEN_TYPE_EQ)) {
+    if (consume(TOKEN_KIND_EQ)) {
       node = new_binary_node(NODE_KIND_EQ, node, relational());
-    } else if (consume(TOKEN_TYPE_NE)) {
+    } else if (consume(TOKEN_KIND_NE)) {
       node = new_binary_node(NODE_KIND_NE, node, relational());
     } else {
       return node;
@@ -397,13 +397,13 @@ Node *relational() {
   Node *node = add_or_subtract();
 
   while (true) {
-    if (consume(TOKEN_TYPE_LT)) {
+    if (consume(TOKEN_KIND_LT)) {
       node = new_binary_node(NODE_KIND_LT, node, add_or_subtract());
-    } else if (consume(TOKEN_TYPE_LE)) {
+    } else if (consume(TOKEN_KIND_LE)) {
       node = new_binary_node(NODE_KIND_LE, node, add_or_subtract());
-    } else if (consume(TOKEN_TYPE_GT)) {
+    } else if (consume(TOKEN_KIND_GT)) {
       node = new_binary_node(NODE_KIND_LT, add_or_subtract(), node);
-    } else if (consume(TOKEN_TYPE_GE)) {
+    } else if (consume(TOKEN_KIND_GE)) {
       node = new_binary_node(NODE_KIND_LE, add_or_subtract(), node);
     } else {
       return node;
@@ -416,9 +416,9 @@ Node *add_or_subtract() {
   Node *node = multiply_or_devide();
 
   while (true) {
-    if (consume(TOKEN_TYPE_PLUS)) {
+    if (consume(TOKEN_KIND_PLUS)) {
       node = new_binary_node(NODE_KIND_ADD, node, multiply_or_devide());
-    } else if (consume(TOKEN_TYPE_MINUS)) {
+    } else if (consume(TOKEN_KIND_MINUS)) {
       node = new_binary_node(NODE_KIND_SUBTRACT, node, multiply_or_devide());
     } else {
       return node;
@@ -431,9 +431,9 @@ Node *multiply_or_devide() {
   Node *node = unary();
 
   while (true) {
-    if (consume(TOKEN_TYPE_ASTERISK)) {
+    if (consume(TOKEN_KIND_ASTERISK)) {
       node = new_binary_node(NODE_KIND_MULTIPLY, node, unary());
-    } else if (consume(TOKEN_TYPE_SLASH)) {
+    } else if (consume(TOKEN_KIND_SLASH)) {
       node = new_binary_node(NODE_KIND_DIVIDE, node, unary());
     } else {
       return node;
@@ -446,17 +446,17 @@ Node *multiply_or_devide() {
 //       | "*" unary
 //       | "&" unary
 Node *unary() {
-  switch (token->type) {
-  case TOKEN_TYPE_AMPERSAND:
+  switch (token->kind) {
+  case TOKEN_KIND_AMPERSAND:
     token = token->next;
     return new_unary_node(NODE_KIND_ADDRESS, unary());
-  case TOKEN_TYPE_ASTERISK:
+  case TOKEN_KIND_ASTERISK:
     token = token->next;
     return new_unary_node(NODE_KIND_DEREFERENCE, unary());
-  case TOKEN_TYPE_MINUS:
+  case TOKEN_KIND_MINUS:
     token = token->next;
     return new_binary_node(NODE_KIND_SUBTRACT, new_number_node(0), primary());
-  case TOKEN_TYPE_PLUS:
+  case TOKEN_KIND_PLUS:
     token = token->next;
   default:
     return primary();
@@ -465,10 +465,10 @@ Node *unary() {
 
 // function_call = identifier "(" (identifier ("," identifier)*)? ")"
 Node *function_call(Token *identifier) {
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
+  while (consume(TOKEN_KIND_COMMA) != NULL || consume(TOKEN_KIND_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = expression();
@@ -492,8 +492,8 @@ Node *local_variable(Token *identifier) {
 
 // function_call_or_local_variable = function_call | local_variable
 Node *function_call_or_local_variable() {
-  Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
-  if (token->type == TOKEN_TYPE_PARENTHESIS_LEFT) {
+  Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
+  if (token->kind == TOKEN_KIND_PARENTHESIS_LEFT) {
     return function_call(identifier);
   } else {
     return local_variable(identifier);
@@ -503,9 +503,9 @@ Node *function_call_or_local_variable() {
 // expression_in_parentheses = "(" expression ")"
 Node *expression_in_parentheses() {
   Node *node;
-  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
   node = expression();
-  expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
+  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
   return node;
 }
 
@@ -517,10 +517,10 @@ Node *number() {
 //         | function_call_or_local_variable
 //         | number
 Node *primary() {
-  switch (token->type) {
-  case TOKEN_TYPE_PARENTHESIS_LEFT:
+  switch (token->kind) {
+  case TOKEN_KIND_PARENTHESIS_LEFT:
     return expression_in_parentheses();
-  case TOKEN_TYPE_IDENTIFIER: {
+  case TOKEN_KIND_IDENTIFIER: {
     return function_call_or_local_variable();
   }
   default:
