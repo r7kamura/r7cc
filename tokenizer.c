@@ -5,9 +5,9 @@
 #include <stdlib.h>  // exit, strtol
 #include <string.h>  // memcmp, strlen
 
-Token *new_token(TokenKind type, char *begin, int length) {
+Token *new_token(TokenKind kind, char *begin, int length) {
   Token *token = calloc(1, sizeof(Token));
-  token->kind = type;
+  token->kind = kind;
   token->string = begin;
   token->length = length;
   return token;

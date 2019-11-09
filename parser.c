@@ -51,13 +51,13 @@ void error(char *position, char *message) {
   exit(1);
 }
 
-bool at_type(void) {
+bool at_kind(void) {
   return token->kind == TOKEN_KIND_INTEGER;
 }
 
-Token *consume(TokenKind type) {
+Token *consume(TokenKind kind) {
   Token *token_;
-  if (token->kind == type) {
+  if (token->kind == kind) {
     token_ = token;
     token = token->next;
     return token_;
@@ -65,9 +65,9 @@ Token *consume(TokenKind type) {
   return NULL;
 }
 
-Token *expect(TokenKind type) {
-  if (token->kind != type) {
-    error(token->string, "Unexpected token type.");
+Token *expect(TokenKind kind) {
+  if (token->kind != kind) {
+    error(token->string, "Unexpected token kind.");
   }
   Token *token_ = token;
   token = token->next;
@@ -126,15 +126,15 @@ Node *new_node(NodeKind kind) {
   return node;
 }
 
-Node *new_binary_node(NodeKind type, Node *lhs, Node *rhs) {
-  Node *node = new_node(type);
+Node *new_binary_node(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = new_node(kind);
   node->binary.lhs = lhs;
   node->binary.rhs = rhs;
   return node;
 }
 
-Node *new_unary_node(NodeKind type, Node *child) {
-  Node *node = new_node(type);
+Node *new_unary_node(NodeKind kind, Node *child) {
+  Node *node = new_node(kind);
   node->node = child;
   return node;
 }
@@ -209,7 +209,7 @@ Node *program() {
   Node *node = new_node(NODE_KIND_PROGRAM);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (at_type()) {
+  while (at_kind()) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = function_definition();
@@ -257,7 +257,7 @@ Node *statement() {
   case TOKEN_KIND_BRACKET_LEFT:
     return statement_block();
   default:
-    if (at_type()) {
+    if (at_kind()) {
       return statement_local_variable_declaration();
     } else {
       return statement_expression();
