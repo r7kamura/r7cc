@@ -112,4 +112,9 @@ assert 1 "int main() { int a = 1; return *((&a + 1) - 1); }"
 # pointer diff
 assert 1 "int main() { int a = 10; return (&a + 1) - &a; }"
 
+# sizeof operator
+assert 8 "int main() { int a; return sizeof(a); }"
+assert 16 "int main() { int a; return sizeof(&a); }"
+assert 8 "int main() { int a; return sizeof(*&a); }"
+
 echo OK
