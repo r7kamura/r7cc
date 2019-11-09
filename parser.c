@@ -49,6 +49,10 @@ void error(char *position, char *message) {
   exit(1);
 }
 
+bool at_type(void) {
+  return token->type == TOKEN_TYPE_INTEGER;
+}
+
 Token *consume(TokenType type) {
   Token *token_;
   if (token->type == type) {
@@ -59,11 +63,13 @@ Token *consume(TokenType type) {
   return NULL;
 }
 
-void expect(TokenType type) {
+Token *expect(TokenType type) {
   if (token->type != type) {
     error(token->string, "Unexpected token type.");
   }
+  Token *token_ = token;
   token = token->next;
+  return token_;
 }
 
 int expect_number() {
@@ -75,13 +81,34 @@ int expect_number() {
   return value;
 }
 
-LocalVariable *find_local_variable(Token *token) {
+LocalVariable *new_local_variable(char *name, int name_length, LocalVariable *next) {
+  LocalVariable *local_variable = calloc(1, sizeof(LocalVariable));
+  local_variable->name = name;
+  local_variable->length = name_length;
+  local_variable->offset = next == NULL ? 8 : next->offset + 8;
+  local_variable->next = next;
+  return local_variable;
+}
+
+LocalVariable *find_local_variable(char *name, int name_length) {
   for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
-    if (local_variable->length == token->length && !memcmp(local_variable->name, token->string, local_variable->length)) {
+    if (local_variable->length == name_length && !memcmp(local_variable->name, name, local_variable->length)) {
       return local_variable;
     }
   }
   return NULL;
+}
+
+LocalVariable *declare_local_variable(char *name, int name_length) {
+  LocalVariable *local_variable = find_local_variable(name, name_length);
+  if (local_variable != NULL) {
+    fprintf(stderr, "Local variable `%.*s` is already defined.\n", name_length, name);
+    exit(1);
+  }
+
+  local_variable = new_local_variable(name, name_length, scope->local_variable);
+  scope->local_variable = local_variable;
+  return local_variable;
 }
 
 Scope *new_scope(Scope *parent) {
@@ -115,18 +142,10 @@ Node *new_number_node(int value) {
   return node;
 }
 
-Node *new_local_variable_node(Token *identifier) {
+Node *new_local_variable_node(LocalVariable *local_variable) {
   Node *node = new_node(NODE_TYPE_LOCAL_VARIABLE);
-  LocalVariable *local_variable = find_local_variable(identifier);
-  if (local_variable == NULL) {
-    local_variable = calloc(1, sizeof(LocalVariable));
-    local_variable->name = identifier->string;
-    local_variable->length = identifier->length;
-    local_variable->offset = scope->local_variable == NULL ? 8 : scope->local_variable->offset + 8;
-    local_variable->next = scope->local_variable;
-    scope->local_variable = local_variable;
-  }
   node->offset = local_variable->offset;
+  return node;
 }
 
 Nodes *new_nodes() {
@@ -135,11 +154,13 @@ Nodes *new_nodes() {
 
 // type = "int"
 Node *type() {
-  expect(TOKEN_TYPE_IDENTIFIER);
+  expect(TOKEN_TYPE_INTEGER);
   return new_node(NODE_TYPE_TYPE);
 }
 
-// function_definition = type identifier "(" (identifier ("," identifier)*)? ")" statement_block
+// function_definition = type identifier "(" parameters? ")" statement_block
+// parameters = parameter ("," parameter)*
+// parameter = type identifier
 Node *function_definition() {
   type();
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
@@ -155,7 +176,9 @@ Node *function_definition() {
     nodes->next = new_nodes();
     nodes = nodes->next;
     type();
-    nodes->node = new_local_variable_node(consume(TOKEN_TYPE_IDENTIFIER));
+    Token *identifier_ = consume(TOKEN_TYPE_IDENTIFIER);
+    LocalVariable *local_variable = declare_local_variable(identifier_->string, identifier_->length);
+    nodes->node = new_local_variable_node(local_variable);
   }
   node->function_definition.parameters = head->next;
   node->function_definition.block = statement_block();
@@ -171,7 +194,7 @@ Node *program() {
   Node *node = new_node(NODE_TYPE_PROGRAM);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (token->type == TOKEN_TYPE_IDENTIFIER) {
+  while (at_type()) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = function_definition();
@@ -180,12 +203,24 @@ Node *program() {
   return node;
 }
 
+// statement_local_variable_declaration = type identifier";"
+Node *statement_local_variable_declaration(void) {
+  type();
+
+  Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
+  declare_local_variable(identifier->string, identifier->length);
+  expect(TOKEN_TYPE_SEMICOLON);
+
+  return NULL;
+}
+
 // statement
 //   = statement_return
 //   | statement_for
 //   | statement_if
 //   | statement_while
 //   | statement_block
+//   | statement_local_variable_declaration
 //   | statement_expression
 Node *statement() {
   switch (token->type) {
@@ -200,7 +235,11 @@ Node *statement() {
   case TOKEN_TYPE_BRACKET_LEFT:
     return statement_block();
   default:
-    return statement_expression();
+    if (at_type()) {
+      return statement_local_variable_declaration();
+    } else {
+      return statement_expression();
+    }
   }
 }
 
@@ -402,26 +441,41 @@ Node *unary() {
   }
 }
 
-// function_call_or_local_variable = identifier ("(" (expression ("," expression)*)? ")")?
-Node *function_call_or_local_variable() {
-  Node *node;
-  Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
-  if (consume(TOKEN_TYPE_PARENTHESIS_LEFT)) {
-    Nodes *head = new_nodes();
-    Nodes *nodes = head;
-    while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
-      nodes->next = new_nodes();
-      nodes = nodes->next;
-      nodes->node = expression();
-    }
-    node = new_node(NODE_TYPE_FUNCTION_CALL);
-    node->function_call.name = identifier->string;
-    node->function_call.name_length = identifier->length;
-    node->function_call.parameters = head->next;
-  } else {
-    node = new_local_variable_node(identifier);
+// function_call = identifier "(" (identifier ("," identifier)*)? ")"
+Node *function_call(Token *identifier) {
+  expect(TOKEN_TYPE_PARENTHESIS_LEFT);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
+  while (consume(TOKEN_TYPE_COMMA) != NULL || consume(TOKEN_TYPE_PARENTHESIS_RIGHT) == NULL) {
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = expression();
   }
+  Node *node = new_node(NODE_TYPE_FUNCTION_CALL);
+  node->function_call.name = identifier->string;
+  node->function_call.name_length = identifier->length;
+  node->function_call.parameters = head->next;
   return node;
+}
+
+// local_variable = identifier
+Node *local_variable(Token *identifier) {
+  LocalVariable *local_variable = find_local_variable(identifier->string, identifier->length);
+  if (local_variable == NULL) {
+    fprintf(stderr, "Undefined local variable: %.*s\n", identifier->length, identifier->string);
+    exit(1);
+  }
+  return new_local_variable_node(local_variable);
+}
+
+// function_call_or_local_variable = function_call | local_variable
+Node *function_call_or_local_variable() {
+  Token *identifier = expect(TOKEN_TYPE_IDENTIFIER);
+  if (token->type == TOKEN_TYPE_PARENTHESIS_LEFT) {
+    return function_call(identifier);
+  } else {
+    return local_variable(identifier);
+  }
 }
 
 // expression_in_parentheses = "(" expression ")"
@@ -437,13 +491,16 @@ Node *number() {
   return new_number_node(expect_number());
 }
 
-// primary = expression_in_parentheses | function_call_or_local_variable | number
+// primary = expression_in_parentheses
+//         | function_call_or_local_variable
+//         | number
 Node *primary() {
   switch (token->type) {
   case TOKEN_TYPE_PARENTHESIS_LEFT:
     return expression_in_parentheses();
-  case TOKEN_TYPE_IDENTIFIER:
+  case TOKEN_TYPE_IDENTIFIER: {
     return function_call_or_local_variable();
+  }
   default:
     return number();
   }
