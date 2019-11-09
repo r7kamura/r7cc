@@ -144,10 +144,8 @@ void generate_function_definition(Node *node) {
   printf(".global %.*s\n", node->function_definition.name_length, node->function_definition.name);
   printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
 
-  int local_variables_count = 0;
   int offset = 0;
   for (LocalVariable *variable = node->function_definition.scope->local_variable; variable != NULL; variable = variable->next) {
-    local_variables_count++;
     offset += size_of_type(variable->type);
   }
   printf("  push rbp\n");
