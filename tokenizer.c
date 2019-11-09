@@ -112,6 +112,9 @@ Token *tokenize(char *input) {
     } else if (starts_and_ends_with(p, "return")) {
       current = current->next = new_token(TOKEN_KIND_RETURN, p, 6);
       p += 6;
+    } else if (starts_and_ends_with(p, "sizeof")) {
+      current = current->next = new_token(TOKEN_KIND_SIZEOF, p, 6);
+      p += 6;
     } else if (is_alpha(*p)) {
       char *q = p;
       p++;

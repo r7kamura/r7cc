@@ -193,11 +193,21 @@ Node *new_address_node(Node *operand) {
   return node;
 }
 
+Node *new_dereference_node(Node *operand) {
+  Node *node = new_unary_node(NODE_KIND_DEREFERENCE, operand);
+  node->type = operand->type->pointed_type;
+  return node;
+}
+
 Node *new_number_node(int value) {
   Node *node = new_node(NODE_KIND_NUMBER);
   node->value = value;
   node->type = int_type;
   return node;
+}
+
+Node *new_sizeof_node(Node *operand) {
+  return new_number_node(size_of_type(operand->type));
 }
 
 Node *new_local_variable_node(LocalVariable *local_variable) {
@@ -493,16 +503,20 @@ Node *multiply_or_devide() {
 
 // unary = "+"? primary
 //       | "-"? primary
+//       | "sizeof" unary
 //       | "*" unary
 //       | "&" unary
 Node *unary() {
   switch (token->kind) {
+  case TOKEN_KIND_SIZEOF:
+    token = token->next;
+    return new_sizeof_node(unary());
   case TOKEN_KIND_AMPERSAND:
     token = token->next;
     return new_address_node(unary());
   case TOKEN_KIND_ASTERISK:
     token = token->next;
-    return new_unary_node(NODE_KIND_DEREFERENCE, unary());
+    return new_dereference_node(unary());
   case TOKEN_KIND_MINUS:
     token = token->next;
     return new_binary_node(NODE_KIND_SUBTRACT, new_number_node(0), primary());
