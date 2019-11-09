@@ -98,4 +98,6 @@ assert 2 "int main() { int a; int b; a = 2; b = &a; return *b; }"
 # initializer
 assert 2 "int main() { int a = 2; return a; }"
 
+assert 1 "int *f() { int a = 0; int *b = &a; return b; } int main() { return 1; }"
+
 echo OK

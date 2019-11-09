@@ -1,15 +1,23 @@
 #pragma once
 
+typedef enum {
+  TYPE_TYPE_INTEGER,
+  TYPE_TYPE_POINTER,
+} TypeType;
+
+typedef struct Type Type;
+
+struct Type {
+  TypeType type;
+  Type *pointer;
+};
+
 typedef struct LocalVariable LocalVariable;
 
 struct LocalVariable {
-  // For linked list.
   LocalVariable *next;
-
-  // Variable name. (e.g. "foo")
+  Type *type;
   char *name;
-
-  // Variable name length. (e.g. 3)
   int name_length;
 
   // Offset from RBP. (e.g. 8, 16, 24)
@@ -85,6 +93,7 @@ struct Node {
     } function_call;
 
     struct {
+      Type *return_value_type;
       char *name;
       int name_length;
       Nodes *parameters;
