@@ -120,33 +120,33 @@ Scope *new_scope(Scope *parent) {
   return scope_;
 }
 
-Node *new_node(NodeType type) {
+Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
-  node->type = type;
+  node->kind = kind;
   return node;
 }
 
-Node *new_binary_node(NodeType type, Node *lhs, Node *rhs) {
+Node *new_binary_node(NodeKind type, Node *lhs, Node *rhs) {
   Node *node = new_node(type);
   node->binary.lhs = lhs;
   node->binary.rhs = rhs;
   return node;
 }
 
-Node *new_unary_node(NodeType type, Node *child) {
+Node *new_unary_node(NodeKind type, Node *child) {
   Node *node = new_node(type);
   node->node = child;
   return node;
 }
 
 Node *new_number_node(int value) {
-  Node *node = new_node(NODE_TYPE_NUMBER);
+  Node *node = new_node(NODE_KIND_NUMBER);
   node->value = value;
   return node;
 }
 
 Node *new_local_variable_node(LocalVariable *local_variable) {
-  Node *node = new_node(NODE_TYPE_LOCAL_VARIABLE);
+  Node *node = new_node(NODE_KIND_LOCAL_VARIABLE);
   node->offset = local_variable->offset;
   return node;
 }
@@ -178,7 +178,7 @@ Type *type_part(void) {
 Node *function_definition() {
   Type *type = type_part();
   Token *identifier = consume(TOKEN_TYPE_IDENTIFIER);
-  Node *node = new_node(NODE_TYPE_FUNCTION_DEFINITION);
+  Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
   node->function_definition.return_value_type = type;
   node->function_definition.name = identifier->string;
   node->function_definition.name_length = identifier->length;
@@ -206,7 +206,7 @@ Node *function_definition() {
 // program = function_definition*
 Node *program() {
   scope = new_scope(NULL);
-  Node *node = new_node(NODE_TYPE_PROGRAM);
+  Node *node = new_node(NODE_KIND_PROGRAM);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
   while (at_type()) {
@@ -227,7 +227,7 @@ Node *statement_local_variable_declaration(void) {
 
   Node *node;
   if (consume(TOKEN_TYPE_ASSIGN)) {
-    node = new_binary_node(NODE_TYPE_ASSIGN, new_local_variable_node(local_variable), expression());
+    node = new_binary_node(NODE_KIND_ASSIGN, new_local_variable_node(local_variable), expression());
   } else {
     node = NULL;
   }
@@ -268,7 +268,7 @@ Node *statement() {
 // statement_block = "{" statement* "}"
 Node *statement_block() {
   expect(TOKEN_TYPE_BRACKET_LEFT);
-  Node *node = new_node(NODE_TYPE_BLOCK);
+  Node *node = new_node(NODE_KIND_BLOCK);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
   while (!consume(TOKEN_TYPE_BRACKET_RIGHT)) {
@@ -289,7 +289,7 @@ Node *statement_expression() {
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
 Node *statement_for() {
-  Node *node = new_node(NODE_TYPE_FOR);
+  Node *node = new_node(NODE_KIND_FOR);
   expect(TOKEN_TYPE_FOR);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
 
@@ -329,7 +329,7 @@ Node *statement_for() {
 Node *statement_if() {
   expect(TOKEN_TYPE_IF);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
-  Node *node = new_node(NODE_TYPE_IF);
+  Node *node = new_node(NODE_KIND_IF);
   node->if_statement.condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   node->if_statement.true_statement = statement();
@@ -342,7 +342,7 @@ Node *statement_if() {
 // statement_return = "return" expression ";"
 Node *statement_return() {
   expect(TOKEN_TYPE_RETURN);
-  Node *node = new_node(NODE_TYPE_RETURN);
+  Node *node = new_node(NODE_KIND_RETURN);
   node->return_statement.expression = expression();
   expect(TOKEN_TYPE_SEMICOLON);
   return node;
@@ -352,7 +352,7 @@ Node *statement_return() {
 Node *statement_while() {
   expect(TOKEN_TYPE_WHILE);
   expect(TOKEN_TYPE_PARENTHESIS_LEFT);
-  Node *node = new_node(NODE_TYPE_WHILE);
+  Node *node = new_node(NODE_KIND_WHILE);
   node->while_statement.condition = expression();
   expect(TOKEN_TYPE_PARENTHESIS_RIGHT);
   node->while_statement.statement = statement();
@@ -368,11 +368,11 @@ Node *expression() {
 Node *assign() {
   Node *node = equality();
   if (consume(TOKEN_TYPE_ASSIGN)) {
-    if (node->type != NODE_TYPE_LOCAL_VARIABLE) {
+    if (node->kind != NODE_KIND_LOCAL_VARIABLE) {
       fprintf(stderr, "Left value in assignment must be a local variable.");
       exit(1);
     }
-    node = new_binary_node(NODE_TYPE_ASSIGN, node, assign());
+    node = new_binary_node(NODE_KIND_ASSIGN, node, assign());
   }
   return node;
 }
@@ -383,9 +383,9 @@ Node *equality() {
 
   while (true) {
     if (consume(TOKEN_TYPE_EQ)) {
-      node = new_binary_node(NODE_TYPE_EQ, node, relational());
+      node = new_binary_node(NODE_KIND_EQ, node, relational());
     } else if (consume(TOKEN_TYPE_NE)) {
-      node = new_binary_node(NODE_TYPE_NE, node, relational());
+      node = new_binary_node(NODE_KIND_NE, node, relational());
     } else {
       return node;
     }
@@ -398,13 +398,13 @@ Node *relational() {
 
   while (true) {
     if (consume(TOKEN_TYPE_LT)) {
-      node = new_binary_node(NODE_TYPE_LT, node, add_or_subtract());
+      node = new_binary_node(NODE_KIND_LT, node, add_or_subtract());
     } else if (consume(TOKEN_TYPE_LE)) {
-      node = new_binary_node(NODE_TYPE_LE, node, add_or_subtract());
+      node = new_binary_node(NODE_KIND_LE, node, add_or_subtract());
     } else if (consume(TOKEN_TYPE_GT)) {
-      node = new_binary_node(NODE_TYPE_LT, add_or_subtract(), node);
+      node = new_binary_node(NODE_KIND_LT, add_or_subtract(), node);
     } else if (consume(TOKEN_TYPE_GE)) {
-      node = new_binary_node(NODE_TYPE_LE, add_or_subtract(), node);
+      node = new_binary_node(NODE_KIND_LE, add_or_subtract(), node);
     } else {
       return node;
     }
@@ -417,9 +417,9 @@ Node *add_or_subtract() {
 
   while (true) {
     if (consume(TOKEN_TYPE_PLUS)) {
-      node = new_binary_node(NODE_TYPE_ADD, node, multiply_or_devide());
+      node = new_binary_node(NODE_KIND_ADD, node, multiply_or_devide());
     } else if (consume(TOKEN_TYPE_MINUS)) {
-      node = new_binary_node(NODE_TYPE_SUBTRACT, node, multiply_or_devide());
+      node = new_binary_node(NODE_KIND_SUBTRACT, node, multiply_or_devide());
     } else {
       return node;
     }
@@ -432,9 +432,9 @@ Node *multiply_or_devide() {
 
   while (true) {
     if (consume(TOKEN_TYPE_ASTERISK)) {
-      node = new_binary_node(NODE_TYPE_MULTIPLY, node, unary());
+      node = new_binary_node(NODE_KIND_MULTIPLY, node, unary());
     } else if (consume(TOKEN_TYPE_SLASH)) {
-      node = new_binary_node(NODE_TYPE_DIVIDE, node, unary());
+      node = new_binary_node(NODE_KIND_DIVIDE, node, unary());
     } else {
       return node;
     }
@@ -449,13 +449,13 @@ Node *unary() {
   switch (token->type) {
   case TOKEN_TYPE_AMPERSAND:
     token = token->next;
-    return new_unary_node(NODE_TYPE_ADDRESS, unary());
+    return new_unary_node(NODE_KIND_ADDRESS, unary());
   case TOKEN_TYPE_ASTERISK:
     token = token->next;
-    return new_unary_node(NODE_TYPE_DEREFERENCE, unary());
+    return new_unary_node(NODE_KIND_DEREFERENCE, unary());
   case TOKEN_TYPE_MINUS:
     token = token->next;
-    return new_binary_node(NODE_TYPE_SUBTRACT, new_number_node(0), primary());
+    return new_binary_node(NODE_KIND_SUBTRACT, new_number_node(0), primary());
   case TOKEN_TYPE_PLUS:
     token = token->next;
   default:
@@ -473,7 +473,7 @@ Node *function_call(Token *identifier) {
     nodes = nodes->next;
     nodes->node = expression();
   }
-  Node *node = new_node(NODE_TYPE_FUNCTION_CALL);
+  Node *node = new_node(NODE_KIND_FUNCTION_CALL);
   node->function_call.name = identifier->string;
   node->function_call.name_length = identifier->length;
   node->function_call.parameters = head->next;

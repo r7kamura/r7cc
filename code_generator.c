@@ -254,68 +254,68 @@ void generate(Node *node) {
     return;
   }
 
-  switch (node->type) {
-  case NODE_TYPE_ADD:
+  switch (node->kind) {
+  case NODE_KIND_ADD:
     generate_add(node);
     break;
-  case NODE_TYPE_ADDRESS:
+  case NODE_KIND_ADDRESS:
     generate_address(node);
     break;
-  case NODE_TYPE_ASSIGN:
+  case NODE_KIND_ASSIGN:
     generate_assign(node);
     break;
-  case NODE_TYPE_BLOCK:
+  case NODE_KIND_BLOCK:
     generate_block(node);
     break;
-  case NODE_TYPE_DEREFERENCE:
+  case NODE_KIND_DEREFERENCE:
     generate_dereference(node);
     break;
-  case NODE_TYPE_DIVIDE:
+  case NODE_KIND_DIVIDE:
     generate_divide(node);
     break;
-  case NODE_TYPE_EQ:
+  case NODE_KIND_EQ:
     generate_eq(node);
     break;
-  case NODE_TYPE_FOR:
+  case NODE_KIND_FOR:
     generate_for(node);
     break;
-  case NODE_TYPE_FUNCTION_CALL:
+  case NODE_KIND_FUNCTION_CALL:
     generate_function_call(node);
     break;
-  case NODE_TYPE_FUNCTION_DEFINITION:
+  case NODE_KIND_FUNCTION_DEFINITION:
     generate_function_definition(node);
     break;
-  case NODE_TYPE_IF:
+  case NODE_KIND_IF:
     generate_if(node);
     break;
-  case NODE_TYPE_LE:
+  case NODE_KIND_LE:
     generate_le(node);
     break;
-  case NODE_TYPE_LOCAL_VARIABLE:
+  case NODE_KIND_LOCAL_VARIABLE:
     generate_local_variable(node);
     break;
-  case NODE_TYPE_LT:
+  case NODE_KIND_LT:
     generate_lt(node);
     break;
-  case NODE_TYPE_MULTIPLY:
+  case NODE_KIND_MULTIPLY:
     generate_multiply(node);
     break;
-  case NODE_TYPE_NE:
+  case NODE_KIND_NE:
     generate_ne(node);
     break;
-  case NODE_TYPE_NUMBER:
+  case NODE_KIND_NUMBER:
     generate_number(node);
     break;
-  case NODE_TYPE_PROGRAM:
+  case NODE_KIND_PROGRAM:
     generate_program(node);
     break;
-  case NODE_TYPE_RETURN:
+  case NODE_KIND_RETURN:
     generate_return(node);
     break;
-  case NODE_TYPE_SUBTRACT:
+  case NODE_KIND_SUBTRACT:
     generate_subtract(node);
     break;
-  case NODE_TYPE_WHILE:
+  case NODE_KIND_WHILE:
     generate_while(node);
     break;
   default:
