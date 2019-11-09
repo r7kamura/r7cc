@@ -10,7 +10,7 @@ struct LocalVariable {
   char *name;
 
   // Variable name length. (e.g. 3)
-  int length;
+  int name_length;
 
   // Offset from RBP. (e.g. 8, 16, 24)
   int offset;

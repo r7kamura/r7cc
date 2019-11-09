@@ -84,7 +84,7 @@ int expect_number() {
 LocalVariable *new_local_variable(char *name, int name_length, LocalVariable *next) {
   LocalVariable *local_variable = calloc(1, sizeof(LocalVariable));
   local_variable->name = name;
-  local_variable->length = name_length;
+  local_variable->name_length = name_length;
   local_variable->offset = next == NULL ? 8 : next->offset + 8;
   local_variable->next = next;
   return local_variable;
@@ -92,7 +92,7 @@ LocalVariable *new_local_variable(char *name, int name_length, LocalVariable *ne
 
 LocalVariable *find_local_variable(char *name, int name_length) {
   for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
-    if (local_variable->length == name_length && !memcmp(local_variable->name, name, local_variable->length)) {
+    if (local_variable->name_length == name_length && !memcmp(local_variable->name, name, local_variable->name_length)) {
       return local_variable;
     }
   }
