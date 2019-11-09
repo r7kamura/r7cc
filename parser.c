@@ -83,27 +83,39 @@ int expect_number() {
   return value;
 }
 
+int size_of_type(Type *type) {
+  switch (type->kind) {
+  case TYPE_KIND_INTEGER:
+    return 8;
+  default:
+    return 16;
+  }
+}
+
 LocalVariable *new_local_variable(Type *type, char *name, int name_length, LocalVariable *next) {
   LocalVariable *local_variable = calloc(1, sizeof(LocalVariable));
   local_variable->type = type;
   local_variable->name = name;
   local_variable->name_length = name_length;
-  local_variable->offset = next == NULL ? 8 : next->offset + 8;
+  local_variable->offset = (next == NULL ? 0 : next->offset) + size_of_type(type);
   local_variable->next = next;
   return local_variable;
 }
 
-LocalVariable *find_local_variable(char *name, int name_length) {
+LocalVariable *find_local_variable(Scope *scope, char *name, int name_length) {
   for (LocalVariable *local_variable = scope->local_variable; local_variable; local_variable = local_variable->next) {
     if (local_variable->name_length == name_length && !memcmp(local_variable->name, name, local_variable->name_length)) {
       return local_variable;
     }
   }
+  if (scope->parent) {
+    return find_local_variable(scope->parent, name, name_length);
+  }
   return NULL;
 }
 
 LocalVariable *declare_local_variable(Type *type, char *name, int name_length) {
-  LocalVariable *local_variable = find_local_variable(name, name_length);
+  LocalVariable *local_variable = find_local_variable(scope, name, name_length);
   if (local_variable != NULL) {
     fprintf(stderr, "Local variable `%.*s` is already defined.\n", name_length, name);
     exit(1);
@@ -120,6 +132,13 @@ Scope *new_scope(Scope *parent) {
   return scope_;
 }
 
+Type *new_pointer_type(Type *pointed_type) {
+  Type *type = calloc(1, sizeof(Type));
+  type->kind = TYPE_KIND_POINTER;
+  type->pointed_type = pointed_type;
+  return type;
+}
+
 Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
@@ -130,7 +149,36 @@ Node *new_binary_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = new_node(kind);
   node->binary.lhs = lhs;
   node->binary.rhs = rhs;
+  node->type = lhs->type;
   return node;
+}
+
+Node *new_add_node(Node *lhs, Node *rhs) {
+  if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_INTEGER) {
+    return new_binary_node(NODE_KIND_ADD, lhs, rhs);
+  }
+  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_INTEGER) {
+    return new_binary_node(NODE_KIND_ADD_POINTER, lhs, rhs);
+  }
+  if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_POINTER) {
+    return new_binary_node(NODE_KIND_ADD_POINTER, rhs, lhs);
+  }
+  fprintf(stderr, "Unexpected operands on `+`.\n");
+  exit(1);
+}
+
+Node *new_subtract_node(Node *lhs, Node *rhs) {
+  if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_INTEGER) {
+    return new_binary_node(NODE_KIND_SUBTRACT, lhs, rhs);
+  }
+  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_INTEGER) {
+    return new_binary_node(NODE_KIND_SUBTRACT_POINTER, lhs, rhs);
+  }
+  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_POINTER) {
+    return new_binary_node(NODE_KIND_DIFF_POINTER, lhs, rhs);
+  }
+  fprintf(stderr, "Unexpected operands on `-`.\n");
+  exit(1);
 }
 
 Node *new_unary_node(NodeKind kind, Node *child) {
@@ -139,27 +187,28 @@ Node *new_unary_node(NodeKind kind, Node *child) {
   return node;
 }
 
+Node *new_address_node(Node *operand) {
+  Node *node = new_unary_node(NODE_KIND_ADDRESS, operand);
+  node->type = new_pointer_type(operand->type);
+  return node;
+}
+
 Node *new_number_node(int value) {
   Node *node = new_node(NODE_KIND_NUMBER);
   node->value = value;
+  node->type = int_type;
   return node;
 }
 
 Node *new_local_variable_node(LocalVariable *local_variable) {
   Node *node = new_node(NODE_KIND_LOCAL_VARIABLE);
   node->offset = local_variable->offset;
+  node->type = local_variable->type;
   return node;
 }
 
 Nodes *new_nodes() {
   return calloc(1, sizeof(Nodes));
-}
-
-Type *new_pointer_type(Type *pointer) {
-  Type *type = calloc(1, sizeof(Type));
-  type->kind = TYPE_KIND_POINTER;
-  type->pointer = pointer;
-  return type;
 }
 
 // type = "int" "*"*
@@ -182,6 +231,7 @@ Node *function_definition() {
   node->function_definition.return_value_type = type;
   node->function_definition.name = identifier->string;
   node->function_definition.name_length = identifier->length;
+  declare_local_variable(type, identifier->string, identifier->length);
 
   scope = new_scope(scope);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
@@ -417,9 +467,9 @@ Node *add_or_subtract() {
 
   while (true) {
     if (consume(TOKEN_KIND_PLUS)) {
-      node = new_binary_node(NODE_KIND_ADD, node, multiply_or_devide());
+      node = new_add_node(node, multiply_or_devide());
     } else if (consume(TOKEN_KIND_MINUS)) {
-      node = new_binary_node(NODE_KIND_SUBTRACT, node, multiply_or_devide());
+      node = new_subtract_node(node, multiply_or_devide());
     } else {
       return node;
     }
@@ -449,7 +499,7 @@ Node *unary() {
   switch (token->kind) {
   case TOKEN_KIND_AMPERSAND:
     token = token->next;
-    return new_unary_node(NODE_KIND_ADDRESS, unary());
+    return new_address_node(unary());
   case TOKEN_KIND_ASTERISK:
     token = token->next;
     return new_unary_node(NODE_KIND_DEREFERENCE, unary());
@@ -477,12 +527,13 @@ Node *function_call(Token *identifier) {
   node->function_call.name = identifier->string;
   node->function_call.name_length = identifier->length;
   node->function_call.parameters = head->next;
+  node->type = find_local_variable(scope, identifier->string, identifier->length)->type;
   return node;
 }
 
 // local_variable = identifier
 Node *local_variable(Token *identifier) {
-  LocalVariable *local_variable = find_local_variable(identifier->string, identifier->length);
+  LocalVariable *local_variable = find_local_variable(scope, identifier->string, identifier->length);
   if (local_variable == NULL) {
     fprintf(stderr, "Undefined local variable: %.*s\n", identifier->length, identifier->string);
     exit(1);

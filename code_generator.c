@@ -30,6 +30,16 @@ void generate_add(Node *node) {
   printf("  push rax\n");
 }
 
+void generate_add_pointer(Node *node) {
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  imul rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  add rax, rdi\n");
+  printf("  push rax\n");
+}
+
 void generate_address(Node *node) {
   generate_local_variable_address(node->node);
 }
@@ -53,6 +63,18 @@ void generate_dereference(Node *node) {
   generate(node->node);
   printf("  pop rax\n");
   printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
+}
+
+void generate_diff_pointer(Node *node) {
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  sub rax, rdi\n");
+  printf("  mov rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  cqo\n");
+  printf("  idiv rdi\n");
   printf("  push rax\n");
 }
 
@@ -123,12 +145,14 @@ void generate_function_definition(Node *node) {
   printf("%.*s:\n", node->function_definition.name_length, node->function_definition.name);
 
   int local_variables_count = 0;
+  int offset = 0;
   for (LocalVariable *variable = node->function_definition.scope->local_variable; variable != NULL; variable = variable->next) {
     local_variables_count++;
+    offset += size_of_type(variable->type);
   }
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %i\n", local_variables_count * 8);
+  printf("  sub rsp, %i\n", offset);
 
   int i = 0;
   for (Nodes *nodes = node->function_definition.parameters; nodes != NULL; nodes = nodes->next) {
@@ -237,6 +261,16 @@ void generate_subtract(Node *node) {
   printf("  push rax\n");
 }
 
+void generate_subtract_pointer(Node *node) {
+  generate(node->binary.lhs);
+  generate(node->binary.rhs);
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  imul rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  sub rax, rdi\n");
+  printf("  push rax\n");
+}
+
 void generate_while(Node *node) {
   int label_count = label_counter++;
   printf(".Lbegin%i:\n", label_count);
@@ -258,6 +292,9 @@ void generate(Node *node) {
   case NODE_KIND_ADD:
     generate_add(node);
     break;
+  case NODE_KIND_ADD_POINTER:
+    generate_add_pointer(node);
+    break;
   case NODE_KIND_ADDRESS:
     generate_address(node);
     break;
@@ -269,6 +306,9 @@ void generate(Node *node) {
     break;
   case NODE_KIND_DEREFERENCE:
     generate_dereference(node);
+    break;
+  case NODE_KIND_DIFF_POINTER:
+    generate_diff_pointer(node);
     break;
   case NODE_KIND_DIVIDE:
     generate_divide(node);
@@ -314,6 +354,9 @@ void generate(Node *node) {
     break;
   case NODE_KIND_SUBTRACT:
     generate_subtract(node);
+    break;
+  case NODE_KIND_SUBTRACT_POINTER:
+    generate_subtract_pointer(node);
     break;
   case NODE_KIND_WHILE:
     generate_while(node);
