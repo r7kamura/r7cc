@@ -72,7 +72,7 @@ Token *expect(TokenKind kind) {
   return token_;
 }
 
-int expect_number() {
+int expect_number(void) {
   if (token->kind != TOKEN_KIND_NUMBER) {
     error(token->string, "Expected number token.");
   }
@@ -199,7 +199,7 @@ Node *new_local_variable_node(LocalVariable *local_variable) {
   return node;
 }
 
-Nodes *new_nodes() {
+Nodes *new_nodes(void) {
   return calloc(1, sizeof(Nodes));
 }
 
@@ -216,7 +216,7 @@ Type *type_part(void) {
 // function_definition = type identifier "(" parameters? ")" statement_block
 // parameters = parameter ("," parameter)*
 // parameter = type identifier
-Node *function_definition() {
+Node *function_definition(void) {
   Type *type = type_part();
   Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
   Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
@@ -246,7 +246,7 @@ Node *function_definition() {
 }
 
 // program = function_definition*
-Node *program() {
+Node *program(void) {
   scope = new_scope(NULL);
   Node *node = new_node(NODE_KIND_PROGRAM);
   Nodes *head = new_nodes();
@@ -289,7 +289,7 @@ Node *statement_local_variable_declaration(void) {
 //   | statement_block
 //   | statement_local_variable_declaration
 //   | statement_expression
-Node *statement() {
+Node *statement(void) {
   switch (token->kind) {
   case TOKEN_KIND_RETURN:
     return statement_return();
@@ -311,7 +311,7 @@ Node *statement() {
 }
 
 // statement_block = "{" statement* "}"
-Node *statement_block() {
+Node *statement_block(void) {
   expect(TOKEN_KIND_BRACE_LEFT);
   Node *node = new_node(NODE_KIND_BLOCK);
   Nodes *head = new_nodes();
@@ -326,14 +326,14 @@ Node *statement_block() {
 }
 
 // statement_expression = expression ";"
-Node *statement_expression() {
+Node *statement_expression(void) {
   Node *node = expression();
   expect(TOKEN_KIND_SEMICOLON);
   return node;
 }
 
 // statement_for = "for" "(" expression? ";" expression? ";" expression? ")" statement
-Node *statement_for() {
+Node *statement_for(void) {
   Node *node = new_node(NODE_KIND_FOR);
   expect(TOKEN_KIND_FOR);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
@@ -371,7 +371,7 @@ Node *statement_for() {
 }
 
 // statement_if = "if" "(" expression ")" statement ("else" statement)?
-Node *statement_if() {
+Node *statement_if(void) {
   expect(TOKEN_KIND_IF);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Node *node = new_node(NODE_KIND_IF);
@@ -385,7 +385,7 @@ Node *statement_if() {
 }
 
 // statement_return = "return" expression ";"
-Node *statement_return() {
+Node *statement_return(void) {
   expect(TOKEN_KIND_RETURN);
   Node *node = new_node(NODE_KIND_RETURN);
   node->return_statement.expression = expression();
@@ -394,7 +394,7 @@ Node *statement_return() {
 }
 
 // statement_while = "while" "(" expression ")" statement
-Node *statement_while() {
+Node *statement_while(void) {
   expect(TOKEN_KIND_WHILE);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Node *node = new_node(NODE_KIND_WHILE);
@@ -405,12 +405,12 @@ Node *statement_while() {
 }
 
 // expression = assign
-Node *expression() {
+Node *expression(void) {
   return assign();
 }
 
 // assign = equality ("=" assign)?
-Node *assign() {
+Node *assign(void) {
   Node *node = equality();
   if (consume(TOKEN_KIND_ASSIGN)) {
     if (node->kind != NODE_KIND_LOCAL_VARIABLE && node->kind != NODE_KIND_DEREFERENCE) {
@@ -423,7 +423,7 @@ Node *assign() {
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-Node *equality() {
+Node *equality(void) {
   Node *node = relational();
 
   while (true) {
@@ -438,7 +438,7 @@ Node *equality() {
 }
 
 // relational = add_or_subtract ("<" add_or_subtract | "<=" add_or_subtract | ">" add_or_subtract | ">=" add_or_subtract)*
-Node *relational() {
+Node *relational(void) {
   Node *node = add_or_subtract();
 
   while (true) {
@@ -457,7 +457,7 @@ Node *relational() {
 }
 
 // add_or_subtract = multiply_or_devide ("+" multiply_or_devide | "-" multiply_or_devide)*
-Node *add_or_subtract() {
+Node *add_or_subtract(void) {
   Node *node = multiply_or_devide();
 
   while (true) {
@@ -472,7 +472,7 @@ Node *add_or_subtract() {
 }
 
 // multiply_or_devide = unary ("*" unary | "/" unary)*
-Node *multiply_or_devide() {
+Node *multiply_or_devide(void) {
   Node *node = unary();
 
   while (true) {
@@ -504,7 +504,7 @@ Node *postfix(void) {
 //       | "sizeof" unary
 //       | "*" unary
 //       | "&" unary
-Node *unary() {
+Node *unary(void) {
   switch (token->kind) {
   case TOKEN_KIND_SIZEOF:
     token = token->next;
@@ -554,7 +554,7 @@ Node *local_variable(Token *identifier) {
 }
 
 // function_call_or_local_variable = function_call | local_variable
-Node *function_call_or_local_variable() {
+Node *function_call_or_local_variable(void) {
   Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
   if (token->kind == TOKEN_KIND_PARENTHESIS_LEFT) {
     return function_call(identifier);
@@ -564,7 +564,7 @@ Node *function_call_or_local_variable() {
 }
 
 // expression_in_parentheses = "(" expression ")"
-Node *expression_in_parentheses() {
+Node *expression_in_parentheses(void) {
   Node *node;
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
   node = expression();
@@ -572,14 +572,14 @@ Node *expression_in_parentheses() {
   return node;
 }
 
-Node *number() {
+Node *number(void) {
   return new_number_node(expect_number());
 }
 
 // primary = expression_in_parentheses
 //         | function_call_or_local_variable
 //         | number
-Node *primary() {
+Node *primary(void) {
   switch (token->kind) {
   case TOKEN_KIND_PARENTHESIS_LEFT:
     return expression_in_parentheses();
