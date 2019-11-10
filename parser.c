@@ -165,7 +165,7 @@ Node *new_sizeof_node(Node *operand) {
 
 Node *new_local_variable_node(LocalVariable *local_variable) {
   Node *node = new_node(NODE_KIND_LOCAL_VARIABLE);
-  node->offset = local_variable->offset;
+  node->local_variable = local_variable;
   node->type = local_variable->type;
   return node;
 }
@@ -537,9 +537,7 @@ Nodes *function_definition_parameters(void) {
 }
 
 // function_definition = type identifier "(" function_definition_parameters? ")" statement_block
-Node *function_definition(void) {
-  Type *type = type_part();
-  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
+Node *function_definition(Type *type, Token *identifier) {
   declare_local_variable(type, identifier->string, identifier->length);
   scope = new_scope(scope);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
@@ -556,7 +554,31 @@ Node *function_definition(void) {
   return node;
 }
 
-// program = function_definition*
+// global_variable = type identifier type_postfix ";"
+Node *global_variable_definition(Type *type, Token *identifier) {
+  type = type_postfix(type);
+  LocalVariable *local_variable = declare_local_variable(type, identifier->string, identifier->length);
+  local_variable->is_global = true;
+  expect(TOKEN_KIND_SEMICOLON);
+  Node *node = new_node(NODE_KIND_GLOBAL_VARIABLE_DEFINITION);
+  node->local_variable = local_variable;
+  return node;
+}
+
+// function_definition_or_global_variable_definition
+//   = function_definition
+//   | global_variable_definition
+Node *function_definition_or_global_variable_definition() {
+  Type *type = type_part();
+  Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
+  if (token->kind == TOKEN_KIND_PARENTHESIS_LEFT) {
+    return function_definition(type, identifier);
+  } else {
+    return global_variable_definition(type, identifier);
+  }
+}
+
+// program = function_definition_or_global_variable*
 Node *program(void) {
   scope = new_scope(NULL);
   Node *node = new_node(NODE_KIND_PROGRAM);
@@ -565,7 +587,7 @@ Node *program(void) {
   while (at_type()) {
     nodes->next = new_nodes();
     nodes = nodes->next;
-    nodes->node = function_definition();
+    nodes->node = function_definition_or_global_variable_definition();
   }
   node->program.nodes = head->next;
   return node;
