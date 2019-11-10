@@ -521,23 +521,11 @@ Node *statement_block(void) {
   return node;
 }
 
-// function_definition = type identifier "(" parameters? ")" statement_block
-// parameters = parameter ("," parameter)*
-// parameter = type identifier
-Node *function_definition(void) {
-  Type *type = type_part();
-  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
-  Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
-  node->function_definition.return_value_type = type;
-  node->function_definition.name = identifier->string;
-  node->function_definition.name_length = identifier->length;
-  declare_local_variable(type, identifier->string, identifier->length);
-
-  scope = new_scope(scope);
-  expect(TOKEN_KIND_PARENTHESIS_LEFT);
+// function_definition_parameters = type identifier ("," type identifier)*
+Nodes *function_definition_parameters(void) {
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (consume(TOKEN_KIND_COMMA) != NULL || consume(TOKEN_KIND_PARENTHESIS_RIGHT) == NULL) {
+  while (consume(TOKEN_KIND_COMMA) != NULL || token->kind != TOKEN_KIND_PARENTHESIS_RIGHT) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     Type *type = type_part();
@@ -545,11 +533,26 @@ Node *function_definition(void) {
     LocalVariable *local_variable = declare_local_variable(type, identifier_->string, identifier_->length);
     nodes->node = new_local_variable_node(local_variable);
   }
-  node->function_definition.parameters = head->next;
+  return head->next;
+}
+
+// function_definition = type identifier "(" function_definition_parameters? ")" statement_block
+Node *function_definition(void) {
+  Type *type = type_part();
+  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
+  declare_local_variable(type, identifier->string, identifier->length);
+  scope = new_scope(scope);
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
+  Nodes *parameters = function_definition_parameters();
+  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
+  Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
+  node->function_definition.return_value_type = type;
+  node->function_definition.name = identifier->string;
+  node->function_definition.name_length = identifier->length;
+  node->function_definition.parameters = parameters;
   node->function_definition.block = statement_block();
   node->function_definition.scope = scope;
   scope = scope->parent;
-
   return node;
 }
 
