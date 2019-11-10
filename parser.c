@@ -83,15 +83,6 @@ int expect_number() {
   return value;
 }
 
-int size_of_type(Type *type) {
-  switch (type->kind) {
-  case TYPE_KIND_INTEGER:
-    return 8;
-  default:
-    return 16;
-  }
-}
-
 LocalVariable *new_local_variable(Type *type, char *name, int name_length, LocalVariable *next) {
   LocalVariable *local_variable = calloc(1, sizeof(LocalVariable));
   local_variable->type = type;
