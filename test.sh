@@ -93,7 +93,7 @@ assert 6 "int multiply(int a, int b) { return a * b; } int main() { return multi
 assert 8 "int fib(int a) { if (a < 2) return a; return fib(a - 2) + fib(a - 1); } int main() { return fib(6); }"
 
 # address and dereference
-assert 2 "int main() { int a; int b; a = 2; b = &a; return *b; }"
+assert 2 "int main() { int a; int *b; a = 2; b = &a; return *b; }"
 
 # initializer
 assert 2 "int main() { int a = 2; return a; }"
