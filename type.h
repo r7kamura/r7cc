@@ -10,4 +10,6 @@ struct Type {
   Type *pointed_type;
 };
 
+Type *new_pointer_type(Type *pointed_type);
+
 int size_of_type(Type *type);

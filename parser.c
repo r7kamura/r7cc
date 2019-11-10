@@ -123,13 +123,6 @@ Scope *new_scope(Scope *parent) {
   return scope_;
 }
 
-Type *new_pointer_type(Type *pointed_type) {
-  Type *type = calloc(1, sizeof(Type));
-  type->kind = TYPE_KIND_POINTER;
-  type->pointed_type = pointed_type;
-  return type;
-}
-
 Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
