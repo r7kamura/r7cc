@@ -305,7 +305,7 @@ Node *statement() {
     return statement_if();
   case TOKEN_KIND_WHILE:
     return statement_while();
-  case TOKEN_KIND_BRACKET_LEFT:
+  case TOKEN_KIND_BRACE_LEFT:
     return statement_block();
   default:
     if (at_kind()) {
@@ -318,11 +318,11 @@ Node *statement() {
 
 // statement_block = "{" statement* "}"
 Node *statement_block() {
-  expect(TOKEN_KIND_BRACKET_LEFT);
+  expect(TOKEN_KIND_BRACE_LEFT);
   Node *node = new_node(NODE_KIND_BLOCK);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (!consume(TOKEN_KIND_BRACKET_RIGHT)) {
+  while (!consume(TOKEN_KIND_BRACE_RIGHT)) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = statement();
