@@ -139,10 +139,10 @@ Node *new_add_node(Node *lhs, Node *rhs) {
   if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_INTEGER) {
     return new_binary_node(NODE_KIND_ADD, lhs, rhs);
   }
-  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_INTEGER) {
+  if (lhs->type->pointed_type && rhs->type->kind == TYPE_KIND_INTEGER) {
     return new_binary_node(NODE_KIND_ADD_POINTER, lhs, rhs);
   }
-  if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_POINTER) {
+  if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->pointed_type) {
     return new_binary_node(NODE_KIND_ADD_POINTER, rhs, lhs);
   }
   fprintf(stderr, "Unexpected operands on `+`.\n");
@@ -153,10 +153,10 @@ Node *new_subtract_node(Node *lhs, Node *rhs) {
   if (lhs->type->kind == TYPE_KIND_INTEGER && rhs->type->kind == TYPE_KIND_INTEGER) {
     return new_binary_node(NODE_KIND_SUBTRACT, lhs, rhs);
   }
-  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_INTEGER) {
+  if (lhs->type->pointed_type && rhs->type->kind == TYPE_KIND_INTEGER) {
     return new_binary_node(NODE_KIND_SUBTRACT_POINTER, lhs, rhs);
   }
-  if (lhs->type->kind == TYPE_KIND_POINTER && rhs->type->kind == TYPE_KIND_POINTER) {
+  if (lhs->type->pointed_type && rhs->type->pointed_type) {
     return new_binary_node(NODE_KIND_DIFF_POINTER, lhs, rhs);
   }
   fprintf(stderr, "Unexpected operands on `-`.\n");
@@ -260,11 +260,14 @@ Node *program() {
   return node;
 }
 
-// statement_local_variable_declaration = type identifier ("=" expression)? ";"
+// statement_local_variable_declaration = type identifier ("[" number "]")? ("=" expression)? ";"
 Node *statement_local_variable_declaration(void) {
   Type *type = type_part();
-
   Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
+  if (consume(TOKEN_KIND_BRACKET_LEFT)) {
+    type = new_array_type(type, expect_number());
+    expect(TOKEN_KIND_BRACKET_RIGHT);
+  }
   LocalVariable *local_variable = declare_local_variable(type, identifier->string, identifier->length);
 
   Node *node;
@@ -410,7 +413,7 @@ Node *expression() {
 Node *assign() {
   Node *node = equality();
   if (consume(TOKEN_KIND_ASSIGN)) {
-    if (node->kind != NODE_KIND_LOCAL_VARIABLE) {
+    if (node->kind != NODE_KIND_LOCAL_VARIABLE && node->kind != NODE_KIND_DEREFERENCE) {
       fprintf(stderr, "Left value in assignment must be a local variable.");
       exit(1);
     }
@@ -483,6 +486,19 @@ Node *multiply_or_devide() {
   }
 }
 
+// postfix = primary ("[" expression "]")*
+Node *postfix(void) {
+  Node *node = primary();
+
+  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
+    Node *index_node = expression();
+    expect(TOKEN_KIND_BRACKET_RIGHT);
+    node = new_dereference_node(new_add_node(node, index_node));
+  }
+
+  return node;
+}
+
 // unary = "+"? primary
 //       | "-"? primary
 //       | "sizeof" unary
@@ -505,7 +521,7 @@ Node *unary() {
   case TOKEN_KIND_PLUS:
     token = token->next;
   default:
-    return primary();
+    return postfix();
   }
 }
 

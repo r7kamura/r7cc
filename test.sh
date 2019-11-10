@@ -117,4 +117,14 @@ assert 8 "int main() { int a; return sizeof(a); }"
 assert 16 "int main() { int a; return sizeof(&a); }"
 assert 8 "int main() { int a; return sizeof(*&a); }"
 
+# array declaration
+assert 80 "int main() { int a[10]; return sizeof(a); }"
+
+# array access via pointer
+assert 1 "int main() { int a[2]; *a = 1; return *a; }"
+assert 3 "int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p = a; return *p + *(p + 1); }"
+
+# array access via bracket
+assert 1 "int main() { int a[2]; a[0] = 0; a[1] = 1; return a[1]; }"
+
 echo OK
