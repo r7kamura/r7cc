@@ -67,9 +67,11 @@ void generate_block(Node *node) {
 
 void generate_dereference(Node *node) {
   generate(node->node);
-  printf("  pop rax\n");
-  printf("  mov rax, [rax]\n");
-  printf("  push rax\n");
+  if (node->type->kind != TYPE_KIND_ARRAY) {
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+  }
 }
 
 void generate_diff_pointer(Node *node) {
