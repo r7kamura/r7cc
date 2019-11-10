@@ -260,11 +260,11 @@ Node *program() {
   return node;
 }
 
-// statement_local_variable_declaration = type identifier ("[" number "]")? ("=" expression)? ";"
+// statement_local_variable_declaration = type identifier ("[" number "]")* ("=" expression)? ";"
 Node *statement_local_variable_declaration(void) {
   Type *type = type_part();
   Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
-  if (consume(TOKEN_KIND_BRACKET_LEFT)) {
+  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
     type = new_array_type(type, expect_number());
     expect(TOKEN_KIND_BRACKET_RIGHT);
   }
