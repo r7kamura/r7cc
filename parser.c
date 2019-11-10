@@ -1,6 +1,5 @@
 #include "parser.h"
-#include "tokenizer.h" // Token, TokenKind
-#include <stdarg.h>    // va_list
+#include "tokenizer.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
