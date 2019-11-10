@@ -127,4 +127,10 @@ assert 3 "int main() { int a[2]; *a = 1; *(a + 1) = 2; int *p = a; return *p + *
 # array access via bracket
 assert 1 "int main() { int a[2]; a[0] = 0; a[1] = 1; return a[1]; }"
 
+# array of array
+assert 1 "int main() { int a[2][3]; a[0][0] = 1; return a[0][0]; }"
+assert 1 "int main() { int a[2][3]; a[0][1] = 1; return a[0][1]; }"
+assert 1 "int main() { int a[2][3]; a[0][2] = 1; return a[0][2]; }"
+assert 1 "int main() { int a[2][3]; a[1][0] = 1; return a[1][0]; }"
+
 echo OK
