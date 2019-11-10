@@ -15,12 +15,6 @@ int label_counter;
 
 void generate(Node *node);
 
-void generate_local_variable_address(Node *node) {
-  printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
-  printf("  push rax\n");
-}
-
 void generate_add(Node *node) {
   generate(node->binary.lhs);
   generate(node->binary.rhs);
@@ -41,11 +35,23 @@ void generate_add_pointer(Node *node) {
 }
 
 void generate_address(Node *node) {
-  generate_local_variable_address(node->node);
+  switch (node->kind) {
+  case NODE_KIND_ADDRESS:
+    generate_address(node->node);
+    break;
+  case NODE_KIND_DEREFERENCE:
+    generate(node->node);
+    break;
+  case NODE_KIND_LOCAL_VARIABLE:
+    printf("  mov rax, rbp\n");
+    printf("  sub rax, %d\n", node->offset);
+    printf("  push rax\n");
+    break;
+  }
 }
 
 void generate_assign(Node *node) {
-  generate_local_variable_address(node->binary.lhs);
+  generate_address(node->binary.lhs);
   generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -194,7 +200,7 @@ void generate_le(Node *node) {
 }
 
 void generate_local_variable(Node *node) {
-  generate_local_variable_address(node);
+  generate_address(node);
   printf("  pop rax\n");
   printf("  mov rax, [rax]\n");
   printf("  push rax\n");
