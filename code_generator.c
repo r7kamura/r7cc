@@ -43,8 +43,13 @@ void generate_address(Node *node) {
     generate(node->node);
     break;
   case NODE_KIND_LOCAL_VARIABLE:
-    printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->offset);
+    if (node->local_variable->is_global) {
+      printf("  mov rax, rip\n");
+      printf("  add rax, %.*s\n", node->local_variable->name_length, node->local_variable->name);
+    } else {
+      printf("  mov rax, rbp\n");
+      printf("  sub rax, %d\n", node->local_variable->offset);
+    }
     printf("  push rax\n");
     break;
   }
@@ -162,10 +167,15 @@ void generate_function_definition(Node *node) {
 
   int i = 0;
   for (Nodes *nodes = node->function_definition.parameters; nodes != NULL; nodes = nodes->next) {
-    printf("  mov [rbp-%d], %s\n", nodes->node->offset, integer_parameter_register_names[i++]);
+    printf("  mov [rbp-%d], %s\n", nodes->node->local_variable->offset, integer_parameter_register_names[i++]);
   }
 
   generate(node->function_definition.block);
+}
+
+void generate_global_variable_definition(Node *node) {
+  printf("%.*s:\n", node->local_variable->name_length, node->local_variable->name);
+  printf("  .zero %d\n", node->local_variable->type->size);
 }
 
 void generate_if(Node *node) {
@@ -247,8 +257,19 @@ void generate_number(Node *node) {
 
 void generate_program(Node *node) {
   printf(".intel_syntax noprefix\n");
+
+  printf(".data\n");
   for (Nodes *nodes = node->program.nodes; nodes != NULL; nodes = nodes->next) {
-    generate(nodes->node);
+    if (nodes->node->kind == NODE_KIND_GLOBAL_VARIABLE_DEFINITION) {
+      generate(nodes->node);
+    }
+  }
+
+  printf(".text\n");
+  for (Nodes *nodes = node->program.nodes; nodes != NULL; nodes = nodes->next) {
+    if (nodes->node->kind == NODE_KIND_FUNCTION_DEFINITION) {
+      generate(nodes->node);
+    }
   }
 }
 
@@ -332,6 +353,9 @@ void generate(Node *node) {
     break;
   case NODE_KIND_FUNCTION_DEFINITION:
     generate_function_definition(node);
+    break;
+  case NODE_KIND_GLOBAL_VARIABLE_DEFINITION:
+    generate_global_variable_definition(node);
     break;
   case NODE_KIND_IF:
     generate_if(node);

@@ -1,5 +1,6 @@
 #pragma once
 #include "type.h"
+#include <stdbool.h>
 
 typedef struct LocalVariable LocalVariable;
 
@@ -8,6 +9,7 @@ struct LocalVariable {
   Type *type;
   char *name;
   int name_length;
+  bool is_global;
 
   // Offset from RBP. (e.g. 8, 16, 24)
   int offset;
@@ -33,6 +35,7 @@ typedef enum {
   NODE_KIND_FOR,
   NODE_KIND_FUNCTION_CALL,
   NODE_KIND_FUNCTION_DEFINITION,
+  NODE_KIND_GLOBAL_VARIABLE_DEFINITION,
   NODE_KIND_IF,
   NODE_KIND_LE,
   NODE_KIND_LOCAL_VARIABLE,
@@ -60,9 +63,9 @@ struct Node {
   union {
     int value;
 
-    int offset;
-
     Node *node;
+
+    LocalVariable *local_variable;
 
     struct {
       Node *lhs;
