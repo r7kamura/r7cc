@@ -20,7 +20,7 @@ void error(char *position, char *message) {
   exit(1);
 }
 
-bool at_kind(void) {
+bool at_type(void) {
   return token->kind == TOKEN_KIND_INTEGER;
 }
 
@@ -492,7 +492,7 @@ Node *statement(void) {
   case TOKEN_KIND_BRACE_LEFT:
     return statement_block();
   default:
-    if (at_kind()) {
+    if (at_type()) {
       return statement_local_variable_declaration();
     } else {
       return statement_expression();
@@ -553,7 +553,7 @@ Node *program(void) {
   Node *node = new_node(NODE_KIND_PROGRAM);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
-  while (at_kind()) {
+  while (at_type()) {
     nodes->next = new_nodes();
     nodes = nodes->next;
     nodes->node = function_definition();
