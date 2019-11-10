@@ -42,8 +42,6 @@ char *begin;
 
 Scope *scope;
 
-Type *int_type = &(Type){.kind = TYPE_KIND_INTEGER};
-
 void error(char *position, char *message) {
   int index = position - begin;
   fprintf(stderr, "%s\n", begin);
@@ -88,7 +86,7 @@ LocalVariable *new_local_variable(Type *type, char *name, int name_length, Local
   local_variable->type = type;
   local_variable->name = name;
   local_variable->name_length = name_length;
-  local_variable->offset = (next == NULL ? 0 : next->offset) + size_of_type(type);
+  local_variable->offset = (next == NULL ? 0 : next->offset) + type->size;
   local_variable->next = next;
   return local_variable;
 }
@@ -191,7 +189,7 @@ Node *new_number_node(int value) {
 }
 
 Node *new_sizeof_node(Node *operand) {
-  return new_number_node(size_of_type(operand->type));
+  return new_number_node(operand->type->size);
 }
 
 Node *new_local_variable_node(LocalVariable *local_variable) {

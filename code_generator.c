@@ -29,7 +29,7 @@ void generate_add_pointer(Node *node) {
   generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
-  printf("  imul rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  imul rdi, %i\n", node->binary.lhs->type->pointed_type->size);
   printf("  add rax, rdi\n");
   printf("  push rax\n");
 }
@@ -78,7 +78,7 @@ void generate_diff_pointer(Node *node) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
   printf("  sub rax, rdi\n");
-  printf("  mov rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  mov rdi, %i\n", node->binary.lhs->type->pointed_type->size);
   printf("  cqo\n");
   printf("  idiv rdi\n");
   printf("  push rax\n");
@@ -152,7 +152,7 @@ void generate_function_definition(Node *node) {
 
   int offset = 0;
   for (LocalVariable *variable = node->function_definition.scope->local_variable; variable != NULL; variable = variable->next) {
-    offset += size_of_type(variable->type);
+    offset += variable->type->size;
   }
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
@@ -270,7 +270,7 @@ void generate_subtract_pointer(Node *node) {
   generate(node->binary.rhs);
   printf("  pop rdi\n");
   printf("  pop rax\n");
-  printf("  imul rdi, %i\n", size_of_type(node->binary.lhs->type->pointed_type));
+  printf("  imul rdi, %i\n", node->binary.lhs->type->pointed_type->size);
   printf("  sub rax, rdi\n");
   printf("  push rax\n");
 }

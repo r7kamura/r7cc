@@ -7,9 +7,10 @@ typedef struct Type Type;
 
 struct Type {
   TypeKind kind;
+  int size;
   Type *pointed_type;
 };
 
 Type *new_pointer_type(Type *pointed_type);
 
-int size_of_type(Type *type);
+extern Type *int_type;
