@@ -7,39 +7,11 @@
 #include <string.h>
 
 Node *statement();
-
 Node *statement_block();
-
-Node *statement_expression();
-
-Node *statement_for();
-
-Node *statement_if();
-
-Node *statement_return();
-
-Node *statement_while();
-
-Node *assign();
-
 Node *expression();
 
-Node *equality();
-
-Node *relational();
-
-Node *add_or_subtract();
-
-Node *multiply_or_devide();
-
-Node *unary();
-
-Node *primary();
-
 Token *token;
-
 char *begin;
-
 Scope *scope;
 
 void error(char *position, char *message) {
@@ -213,51 +185,191 @@ Type *type_part(void) {
   return type;
 }
 
-// function_definition = type identifier "(" parameters? ")" statement_block
-// parameters = parameter ("," parameter)*
-// parameter = type identifier
-Node *function_definition(void) {
-  Type *type = type_part();
-  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
-  Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
-  node->function_definition.return_value_type = type;
-  node->function_definition.name = identifier->string;
-  node->function_definition.name_length = identifier->length;
-  declare_local_variable(type, identifier->string, identifier->length);
-
-  scope = new_scope(scope);
+// function_call = identifier "(" (identifier ("," identifier)*)? ")"
+Node *function_call(Token *identifier) {
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
   while (consume(TOKEN_KIND_COMMA) != NULL || consume(TOKEN_KIND_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
-    Type *type = type_part();
-    Token *identifier_ = consume(TOKEN_KIND_IDENTIFIER);
-    LocalVariable *local_variable = declare_local_variable(type, identifier_->string, identifier_->length);
-    nodes->node = new_local_variable_node(local_variable);
+    nodes->node = expression();
   }
-  node->function_definition.parameters = head->next;
-  node->function_definition.block = statement_block();
-  node->function_definition.scope = scope;
-  scope = scope->parent;
+  Node *node = new_node(NODE_KIND_FUNCTION_CALL);
+  node->function_call.name = identifier->string;
+  node->function_call.name_length = identifier->length;
+  node->function_call.parameters = head->next;
+  node->type = find_local_variable(scope, identifier->string, identifier->length)->type;
+  return node;
+}
+
+// local_variable = identifier
+Node *local_variable(Token *identifier) {
+  LocalVariable *local_variable = find_local_variable(scope, identifier->string, identifier->length);
+  if (local_variable == NULL) {
+    fprintf(stderr, "Undefined local variable: %.*s\n", identifier->length, identifier->string);
+    exit(1);
+  }
+  return new_local_variable_node(local_variable);
+}
+
+// function_call_or_local_variable = function_call | local_variable
+Node *function_call_or_local_variable(void) {
+  Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
+  if (token->kind == TOKEN_KIND_PARENTHESIS_LEFT) {
+    return function_call(identifier);
+  } else {
+    return local_variable(identifier);
+  }
+}
+
+// expression_in_parentheses = "(" expression ")"
+Node *expression_in_parentheses(void) {
+  Node *node;
+  expect(TOKEN_KIND_PARENTHESIS_LEFT);
+  node = expression();
+  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
+  return node;
+}
+
+Node *number(void) {
+  return new_number_node(expect_number());
+}
+
+// primary = expression_in_parentheses
+//         | function_call_or_local_variable
+//         | number
+Node *primary(void) {
+  switch (token->kind) {
+  case TOKEN_KIND_PARENTHESIS_LEFT:
+    return expression_in_parentheses();
+  case TOKEN_KIND_IDENTIFIER: {
+    return function_call_or_local_variable();
+  }
+  default:
+    return number();
+  }
+}
+
+// postfix = primary ("[" expression "]")*
+Node *postfix(void) {
+  Node *node = primary();
+
+  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
+    Node *index_node = expression();
+    expect(TOKEN_KIND_BRACKET_RIGHT);
+    node = new_dereference_node(new_add_node(node, index_node));
+  }
 
   return node;
 }
 
-// program = function_definition*
-Node *program(void) {
-  scope = new_scope(NULL);
-  Node *node = new_node(NODE_KIND_PROGRAM);
-  Nodes *head = new_nodes();
-  Nodes *nodes = head;
-  while (at_kind()) {
-    nodes->next = new_nodes();
-    nodes = nodes->next;
-    nodes->node = function_definition();
+// unary = "+"? primary
+//       | "-"? primary
+//       | "sizeof" unary
+//       | "*" unary
+//       | "&" unary
+Node *unary(void) {
+  switch (token->kind) {
+  case TOKEN_KIND_SIZEOF:
+    token = token->next;
+    return new_sizeof_node(unary());
+  case TOKEN_KIND_AMPERSAND:
+    token = token->next;
+    return new_address_node(unary());
+  case TOKEN_KIND_ASTERISK:
+    token = token->next;
+    return new_dereference_node(unary());
+  case TOKEN_KIND_MINUS:
+    token = token->next;
+    return new_binary_node(NODE_KIND_SUBTRACT, new_number_node(0), primary());
+  case TOKEN_KIND_PLUS:
+    token = token->next;
+  default:
+    return postfix();
   }
-  node->program.nodes = head->next;
+}
+
+// multiply_or_devide = unary ("*" unary | "/" unary)*
+Node *multiply_or_devide(void) {
+  Node *node = unary();
+
+  while (true) {
+    if (consume(TOKEN_KIND_ASTERISK)) {
+      node = new_binary_node(NODE_KIND_MULTIPLY, node, unary());
+    } else if (consume(TOKEN_KIND_SLASH)) {
+      node = new_binary_node(NODE_KIND_DIVIDE, node, unary());
+    } else {
+      return node;
+    }
+  }
+}
+
+// add_or_subtract = multiply_or_devide ("+" multiply_or_devide | "-" multiply_or_devide)*
+Node *add_or_subtract(void) {
+  Node *node = multiply_or_devide();
+
+  while (true) {
+    if (consume(TOKEN_KIND_PLUS)) {
+      node = new_add_node(node, multiply_or_devide());
+    } else if (consume(TOKEN_KIND_MINUS)) {
+      node = new_subtract_node(node, multiply_or_devide());
+    } else {
+      return node;
+    }
+  }
+}
+
+// relational = add_or_subtract ("<" add_or_subtract | "<=" add_or_subtract | ">" add_or_subtract | ">=" add_or_subtract)*
+Node *relational(void) {
+  Node *node = add_or_subtract();
+
+  while (true) {
+    if (consume(TOKEN_KIND_LT)) {
+      node = new_binary_node(NODE_KIND_LT, node, add_or_subtract());
+    } else if (consume(TOKEN_KIND_LE)) {
+      node = new_binary_node(NODE_KIND_LE, node, add_or_subtract());
+    } else if (consume(TOKEN_KIND_GT)) {
+      node = new_binary_node(NODE_KIND_LT, add_or_subtract(), node);
+    } else if (consume(TOKEN_KIND_GE)) {
+      node = new_binary_node(NODE_KIND_LE, add_or_subtract(), node);
+    } else {
+      return node;
+    }
+  }
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+Node *equality(void) {
+  Node *node = relational();
+
+  while (true) {
+    if (consume(TOKEN_KIND_EQ)) {
+      node = new_binary_node(NODE_KIND_EQ, node, relational());
+    } else if (consume(TOKEN_KIND_NE)) {
+      node = new_binary_node(NODE_KIND_NE, node, relational());
+    } else {
+      return node;
+    }
+  }
+}
+
+// assign = equality ("=" assign)?
+Node *assign(void) {
+  Node *node = equality();
+  if (consume(TOKEN_KIND_ASSIGN)) {
+    if (node->kind != NODE_KIND_LOCAL_VARIABLE && node->kind != NODE_KIND_DEREFERENCE) {
+      fprintf(stderr, "Left value in assignment must be a local variable.");
+      exit(1);
+    }
+    node = new_binary_node(NODE_KIND_ASSIGN, node, assign());
+  }
   return node;
+}
+
+// expression = assign
+Node *expression(void) {
+  return assign();
 }
 
 // statement_local_variable_declaration = type identifier ("[" number "]")* ("=" expression)? ";"
@@ -278,50 +390,6 @@ Node *statement_local_variable_declaration(void) {
   }
 
   expect(TOKEN_KIND_SEMICOLON);
-  return node;
-}
-
-// statement
-//   = statement_return
-//   | statement_for
-//   | statement_if
-//   | statement_while
-//   | statement_block
-//   | statement_local_variable_declaration
-//   | statement_expression
-Node *statement(void) {
-  switch (token->kind) {
-  case TOKEN_KIND_RETURN:
-    return statement_return();
-  case TOKEN_KIND_FOR:
-    return statement_for();
-  case TOKEN_KIND_IF:
-    return statement_if();
-  case TOKEN_KIND_WHILE:
-    return statement_while();
-  case TOKEN_KIND_BRACE_LEFT:
-    return statement_block();
-  default:
-    if (at_kind()) {
-      return statement_local_variable_declaration();
-    } else {
-      return statement_expression();
-    }
-  }
-}
-
-// statement_block = "{" statement* "}"
-Node *statement_block(void) {
-  expect(TOKEN_KIND_BRACE_LEFT);
-  Node *node = new_node(NODE_KIND_BLOCK);
-  Nodes *head = new_nodes();
-  Nodes *nodes = head;
-  while (!consume(TOKEN_KIND_BRACE_RIGHT)) {
-    nodes->next = new_nodes();
-    nodes = nodes->next;
-    nodes->node = statement();
-  }
-  node->block.nodes = head->next;
   return node;
 }
 
@@ -404,191 +472,95 @@ Node *statement_while(void) {
   return node;
 }
 
-// expression = assign
-Node *expression(void) {
-  return assign();
-}
-
-// assign = equality ("=" assign)?
-Node *assign(void) {
-  Node *node = equality();
-  if (consume(TOKEN_KIND_ASSIGN)) {
-    if (node->kind != NODE_KIND_LOCAL_VARIABLE && node->kind != NODE_KIND_DEREFERENCE) {
-      fprintf(stderr, "Left value in assignment must be a local variable.");
-      exit(1);
-    }
-    node = new_binary_node(NODE_KIND_ASSIGN, node, assign());
-  }
-  return node;
-}
-
-// equality = relational ("==" relational | "!=" relational)*
-Node *equality(void) {
-  Node *node = relational();
-
-  while (true) {
-    if (consume(TOKEN_KIND_EQ)) {
-      node = new_binary_node(NODE_KIND_EQ, node, relational());
-    } else if (consume(TOKEN_KIND_NE)) {
-      node = new_binary_node(NODE_KIND_NE, node, relational());
-    } else {
-      return node;
-    }
-  }
-}
-
-// relational = add_or_subtract ("<" add_or_subtract | "<=" add_or_subtract | ">" add_or_subtract | ">=" add_or_subtract)*
-Node *relational(void) {
-  Node *node = add_or_subtract();
-
-  while (true) {
-    if (consume(TOKEN_KIND_LT)) {
-      node = new_binary_node(NODE_KIND_LT, node, add_or_subtract());
-    } else if (consume(TOKEN_KIND_LE)) {
-      node = new_binary_node(NODE_KIND_LE, node, add_or_subtract());
-    } else if (consume(TOKEN_KIND_GT)) {
-      node = new_binary_node(NODE_KIND_LT, add_or_subtract(), node);
-    } else if (consume(TOKEN_KIND_GE)) {
-      node = new_binary_node(NODE_KIND_LE, add_or_subtract(), node);
-    } else {
-      return node;
-    }
-  }
-}
-
-// add_or_subtract = multiply_or_devide ("+" multiply_or_devide | "-" multiply_or_devide)*
-Node *add_or_subtract(void) {
-  Node *node = multiply_or_devide();
-
-  while (true) {
-    if (consume(TOKEN_KIND_PLUS)) {
-      node = new_add_node(node, multiply_or_devide());
-    } else if (consume(TOKEN_KIND_MINUS)) {
-      node = new_subtract_node(node, multiply_or_devide());
-    } else {
-      return node;
-    }
-  }
-}
-
-// multiply_or_devide = unary ("*" unary | "/" unary)*
-Node *multiply_or_devide(void) {
-  Node *node = unary();
-
-  while (true) {
-    if (consume(TOKEN_KIND_ASTERISK)) {
-      node = new_binary_node(NODE_KIND_MULTIPLY, node, unary());
-    } else if (consume(TOKEN_KIND_SLASH)) {
-      node = new_binary_node(NODE_KIND_DIVIDE, node, unary());
-    } else {
-      return node;
-    }
-  }
-}
-
-// postfix = primary ("[" expression "]")*
-Node *postfix(void) {
-  Node *node = primary();
-
-  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
-    Node *index_node = expression();
-    expect(TOKEN_KIND_BRACKET_RIGHT);
-    node = new_dereference_node(new_add_node(node, index_node));
-  }
-
-  return node;
-}
-
-// unary = "+"? primary
-//       | "-"? primary
-//       | "sizeof" unary
-//       | "*" unary
-//       | "&" unary
-Node *unary(void) {
+// statement
+//   = statement_return
+//   | statement_for
+//   | statement_if
+//   | statement_while
+//   | statement_block
+//   | statement_local_variable_declaration
+//   | statement_expression
+Node *statement(void) {
   switch (token->kind) {
-  case TOKEN_KIND_SIZEOF:
-    token = token->next;
-    return new_sizeof_node(unary());
-  case TOKEN_KIND_AMPERSAND:
-    token = token->next;
-    return new_address_node(unary());
-  case TOKEN_KIND_ASTERISK:
-    token = token->next;
-    return new_dereference_node(unary());
-  case TOKEN_KIND_MINUS:
-    token = token->next;
-    return new_binary_node(NODE_KIND_SUBTRACT, new_number_node(0), primary());
-  case TOKEN_KIND_PLUS:
-    token = token->next;
+  case TOKEN_KIND_RETURN:
+    return statement_return();
+  case TOKEN_KIND_FOR:
+    return statement_for();
+  case TOKEN_KIND_IF:
+    return statement_if();
+  case TOKEN_KIND_WHILE:
+    return statement_while();
+  case TOKEN_KIND_BRACE_LEFT:
+    return statement_block();
   default:
-    return postfix();
+    if (at_kind()) {
+      return statement_local_variable_declaration();
+    } else {
+      return statement_expression();
+    }
   }
 }
 
-// function_call = identifier "(" (identifier ("," identifier)*)? ")"
-Node *function_call(Token *identifier) {
+// statement_block = "{" statement* "}"
+Node *statement_block(void) {
+  expect(TOKEN_KIND_BRACE_LEFT);
+  Node *node = new_node(NODE_KIND_BLOCK);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
+  while (!consume(TOKEN_KIND_BRACE_RIGHT)) {
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = statement();
+  }
+  node->block.nodes = head->next;
+  return node;
+}
+
+// function_definition = type identifier "(" parameters? ")" statement_block
+// parameters = parameter ("," parameter)*
+// parameter = type identifier
+Node *function_definition(void) {
+  Type *type = type_part();
+  Token *identifier = consume(TOKEN_KIND_IDENTIFIER);
+  Node *node = new_node(NODE_KIND_FUNCTION_DEFINITION);
+  node->function_definition.return_value_type = type;
+  node->function_definition.name = identifier->string;
+  node->function_definition.name_length = identifier->length;
+  declare_local_variable(type, identifier->string, identifier->length);
+
+  scope = new_scope(scope);
   expect(TOKEN_KIND_PARENTHESIS_LEFT);
   Nodes *head = new_nodes();
   Nodes *nodes = head;
   while (consume(TOKEN_KIND_COMMA) != NULL || consume(TOKEN_KIND_PARENTHESIS_RIGHT) == NULL) {
     nodes->next = new_nodes();
     nodes = nodes->next;
-    nodes->node = expression();
+    Type *type = type_part();
+    Token *identifier_ = consume(TOKEN_KIND_IDENTIFIER);
+    LocalVariable *local_variable = declare_local_variable(type, identifier_->string, identifier_->length);
+    nodes->node = new_local_variable_node(local_variable);
   }
-  Node *node = new_node(NODE_KIND_FUNCTION_CALL);
-  node->function_call.name = identifier->string;
-  node->function_call.name_length = identifier->length;
-  node->function_call.parameters = head->next;
-  node->type = find_local_variable(scope, identifier->string, identifier->length)->type;
+  node->function_definition.parameters = head->next;
+  node->function_definition.block = statement_block();
+  node->function_definition.scope = scope;
+  scope = scope->parent;
+
   return node;
 }
 
-// local_variable = identifier
-Node *local_variable(Token *identifier) {
-  LocalVariable *local_variable = find_local_variable(scope, identifier->string, identifier->length);
-  if (local_variable == NULL) {
-    fprintf(stderr, "Undefined local variable: %.*s\n", identifier->length, identifier->string);
-    exit(1);
+// program = function_definition*
+Node *program(void) {
+  scope = new_scope(NULL);
+  Node *node = new_node(NODE_KIND_PROGRAM);
+  Nodes *head = new_nodes();
+  Nodes *nodes = head;
+  while (at_kind()) {
+    nodes->next = new_nodes();
+    nodes = nodes->next;
+    nodes->node = function_definition();
   }
-  return new_local_variable_node(local_variable);
-}
-
-// function_call_or_local_variable = function_call | local_variable
-Node *function_call_or_local_variable(void) {
-  Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
-  if (token->kind == TOKEN_KIND_PARENTHESIS_LEFT) {
-    return function_call(identifier);
-  } else {
-    return local_variable(identifier);
-  }
-}
-
-// expression_in_parentheses = "(" expression ")"
-Node *expression_in_parentheses(void) {
-  Node *node;
-  expect(TOKEN_KIND_PARENTHESIS_LEFT);
-  node = expression();
-  expect(TOKEN_KIND_PARENTHESIS_RIGHT);
+  node->program.nodes = head->next;
   return node;
-}
-
-Node *number(void) {
-  return new_number_node(expect_number());
-}
-
-// primary = expression_in_parentheses
-//         | function_call_or_local_variable
-//         | number
-Node *primary(void) {
-  switch (token->kind) {
-  case TOKEN_KIND_PARENTHESIS_LEFT:
-    return expression_in_parentheses();
-  case TOKEN_KIND_IDENTIFIER: {
-    return function_call_or_local_variable();
-  }
-  default:
-    return number();
-  }
 }
 
 Node *parse(char *input) {
