@@ -94,6 +94,12 @@ Token *tokenize(char *input) {
     } else if (*p == '}') {
       current = current->next = new_token(TOKEN_KIND_BRACE_RIGHT, p, 1);
       p++;
+    } else if (*p == '[') {
+      current = current->next = new_token(TOKEN_KIND_BRACKET_LEFT, p, 1);
+      p++;
+    } else if (*p == ']') {
+      current = current->next = new_token(TOKEN_KIND_BRACKET_RIGHT, p, 1);
+      p++;
     } else if (starts_and_ends_with(p, "if")) {
       current = current->next = new_token(TOKEN_KIND_IF, p, 2);
       p += 2;

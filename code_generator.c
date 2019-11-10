@@ -201,9 +201,11 @@ void generate_le(Node *node) {
 
 void generate_local_variable(Node *node) {
   generate_address(node);
-  printf("  pop rax\n");
-  printf("  mov rax, [rax]\n");
-  printf("  push rax\n");
+  if (node->type->kind != TYPE_KIND_ARRAY) {
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+  }
 }
 
 void generate_lt(Node *node) {
