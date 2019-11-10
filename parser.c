@@ -174,6 +174,15 @@ Nodes *new_nodes(void) {
   return calloc(1, sizeof(Nodes));
 }
 
+// type_postfix = ("[" number "]")*
+Type *type_postfix(Type *type) {
+  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
+    type = new_array_type(type, expect_number());
+    expect(TOKEN_KIND_BRACKET_RIGHT);
+  }
+  return type;
+}
+
 // type = "int" "*"*
 Type *type_part(void) {
   expect(TOKEN_KIND_INTEGER);
@@ -375,10 +384,7 @@ Node *expression(void) {
 Node *statement_local_variable_declaration(void) {
   Type *type = type_part();
   Token *identifier = expect(TOKEN_KIND_IDENTIFIER);
-  while (consume(TOKEN_KIND_BRACKET_LEFT)) {
-    type = new_array_type(type, expect_number());
-    expect(TOKEN_KIND_BRACKET_RIGHT);
-  }
+  type = type_postfix(type);
   LocalVariable *local_variable = declare_local_variable(type, identifier->string, identifier->length);
 
   Node *node;
