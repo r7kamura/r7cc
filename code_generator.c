@@ -44,8 +44,7 @@ void generate_address(Node *node) {
     break;
   case NODE_KIND_LOCAL_VARIABLE:
     if (node->local_variable->is_global) {
-      printf("  mov rax, rip\n");
-      printf("  add rax, %.*s\n", node->local_variable->name_length, node->local_variable->name);
+      printf("  lea rax, %.*s[rip]\n", node->local_variable->name_length, node->local_variable->name);
     } else {
       printf("  mov rax, rbp\n");
       printf("  sub rax, %d\n", node->local_variable->offset);
