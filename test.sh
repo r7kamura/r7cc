@@ -135,5 +135,6 @@ assert 1 "int main() { int a[2][3]; a[1][0] = 1; return a[1][0]; }"
 
 # global variable
 assert 1 "int a; int main() { a = 1; return a; }"
+assert 1 "int a[10]; int main() { a[0] = 1; return a[0]; }"
 
 echo OK
