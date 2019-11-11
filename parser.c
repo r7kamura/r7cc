@@ -21,7 +21,7 @@ void error(char *position, char *message) {
 }
 
 bool at_type(void) {
-  return token->kind == TOKEN_KIND_INTEGER;
+  return token->kind == TOKEN_KIND_INTEGER || token->kind == TOKEN_KIND_CHAR;
 }
 
 Token *consume(TokenKind kind) {
@@ -183,10 +183,22 @@ Type *type_postfix(Type *type) {
   return type;
 }
 
-// type = "int" "*"*
+// base_type
+//   = "char"
+//   | "int"
+Type *base_type(void) {
+  if (consume(TOKEN_KIND_CHAR)) {
+    return char_type;
+  }
+  if (consume(TOKEN_KIND_INTEGER)) {
+    return int_type;
+  }
+  error(token->string, "Unexpected token.");
+}
+
+// type = base_type "*"*
 Type *type_part(void) {
-  expect(TOKEN_KIND_INTEGER);
-  Type *type = int_type;
+  Type *type = base_type();
   while (consume(TOKEN_KIND_ASTERISK)) {
     type = new_pointer_type(type);
   }

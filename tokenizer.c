@@ -109,6 +109,9 @@ Token *tokenize(char *input) {
     } else if (starts_and_ends_with(p, "for")) {
       current = current->next = new_token(TOKEN_KIND_FOR, p, 3);
       p += 3;
+    } else if (starts_and_ends_with(p, "char")) {
+      current = current->next = new_token(TOKEN_KIND_CHAR, p, 4);
+      p += 4;
     } else if (starts_and_ends_with(p, "else")) {
       current = current->next = new_token(TOKEN_KIND_ELSE, p, 4);
       p += 4;

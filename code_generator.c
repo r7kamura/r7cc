@@ -2,8 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// System V AMD64 ABI.
-static char *integer_parameter_register_names[] = {
+static char *register_names_1byte[] = {
+    "dil",
+    "sil",
+    "dl",
+    "cl",
+    "r8b",
+    "r9b"};
+
+static char *register_names_8byte[] = {
     "rdi",
     "rsi",
     "rdx",
@@ -13,16 +20,28 @@ static char *integer_parameter_register_names[] = {
 
 int label_counter;
 
-void load(void) {
+int align(int target, int unit) {
+  return (target + unit) & ~(unit - 1);
+}
+
+void load(Type *type) {
   printf("  pop rax\n");
-  printf("  mov rax, [rax]\n");
+  if (type->size == 1) {
+    printf("  movsx rax, BYTE PTR [rax]\n");
+  } else {
+    printf("  mov rax, [rax]\n");
+  }
   printf("  push rax\n");
 }
 
-void store(void) {
+void store(Type *type) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
-  printf("  mov [rax], rdi\n");
+  if (type->size == 1) {
+    printf("  mov [rax], dil\n");
+  } else {
+    printf("  mov [rax], rdi\n");
+  }
   printf("  push rdi\n");
 }
 
@@ -70,7 +89,7 @@ void generate_address(Node *node) {
 void generate_assign(Node *node) {
   generate_address(node->binary.lhs);
   generate(node->binary.rhs);
-  store();
+  store(node->type);
 }
 
 void generate_block(Node *node) {
@@ -82,7 +101,7 @@ void generate_block(Node *node) {
 void generate_dereference(Node *node) {
   generate(node->node);
   if (node->type->kind != TYPE_KIND_ARRAY) {
-    load();
+    load(node->type);
   }
 }
 
@@ -142,7 +161,7 @@ void generate_function_call(Node *node) {
     parameters_count++;
   }
   while (parameters_count--) {
-    printf("  pop %s\n", integer_parameter_register_names[parameters_count]);
+    printf("  pop %s\n", register_names_8byte[parameters_count]);
   }
   int label_count = label_counter++;
   printf("  mov rax, rsp\n");
@@ -170,11 +189,18 @@ void generate_function_definition(Node *node) {
   }
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %i\n", offset);
+  printf("  sub rsp, %i\n", align(offset, 8));
 
   int i = 0;
   for (Nodes *nodes = node->function_definition.parameters; nodes != NULL; nodes = nodes->next) {
-    printf("  mov [rbp-%d], %s\n", nodes->node->local_variable->offset, integer_parameter_register_names[i++]);
+    char *register_name;
+    if (nodes->node->local_variable->type->size == 1) {
+      register_name = register_names_1byte[i];
+    } else {
+      register_name = register_names_8byte[i];
+    }
+    printf("  mov [rbp-%d], %s\n", nodes->node->local_variable->offset, register_name);
+    i++;
   }
 
   generate(node->function_definition.block);
@@ -221,7 +247,7 @@ void generate_le(Node *node) {
 void generate_local_variable(Node *node) {
   generate_address(node);
   if (node->type->kind != TYPE_KIND_ARRAY) {
-    load();
+    load(node->type);
   }
 }
 
