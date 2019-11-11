@@ -1,6 +1,11 @@
 #include "type.h"
 #include <stdlib.h>
 
+Type *char_type = &(Type){
+    .kind = TYPE_KIND_CHAR,
+    .size = 1,
+};
+
 Type *int_type = &(Type){
     .kind = TYPE_KIND_INTEGER,
     .size = 8,

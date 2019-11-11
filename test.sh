@@ -137,4 +137,10 @@ assert 1 "int main() { int a[2][3]; a[1][0] = 1; return a[1][0]; }"
 assert 1 "int a; int main() { a = 1; return a; }"
 assert 1 "int a[10]; int main() { a[0] = 1; return a[0]; }"
 
+# char type
+assert 1 "int main() { char a = 1; return 1; }"
+assert 2 "int main() { char a = 1; char b = 2; return b; }"
+assert 1 "int main() { char a; return sizeof(a); }"
+assert 10 "int main() { char a[10]; return sizeof(a); }"
+
 echo OK
