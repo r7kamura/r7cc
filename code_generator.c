@@ -13,6 +13,19 @@ static char *integer_parameter_register_names[] = {
 
 int label_counter;
 
+void load(void) {
+  printf("  pop rax\n");
+  printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
+}
+
+void store(void) {
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  mov [rax], rdi\n");
+  printf("  push rdi\n");
+}
+
 void generate(Node *node);
 
 void generate_add(Node *node) {
@@ -57,10 +70,7 @@ void generate_address(Node *node) {
 void generate_assign(Node *node) {
   generate_address(node->binary.lhs);
   generate(node->binary.rhs);
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
-  printf("  mov [rax], rdi\n");
-  printf("  push rdi\n");
+  store();
 }
 
 void generate_block(Node *node) {
@@ -72,9 +82,7 @@ void generate_block(Node *node) {
 void generate_dereference(Node *node) {
   generate(node->node);
   if (node->type->kind != TYPE_KIND_ARRAY) {
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    load();
   }
 }
 
@@ -213,9 +221,7 @@ void generate_le(Node *node) {
 void generate_local_variable(Node *node) {
   generate_address(node);
   if (node->type->kind != TYPE_KIND_ARRAY) {
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    load();
   }
 }
 
