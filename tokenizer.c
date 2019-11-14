@@ -131,6 +131,14 @@ Token *tokenize(char *input) {
         p++;
       }
       current = current->next = new_token(TOKEN_KIND_IDENTIFIER, q, p - q);
+    } else if (*p == '"') {
+      char *q = p;
+      p++;
+      while (*p != '"') {
+        p++;
+      }
+      p++;
+      current = current->next = new_token(TOKEN_KIND_STRING, q, p - q);
     } else if (isdigit(*p)) {
       char *q = p;
       int value = strtol(p, &p, 10);
