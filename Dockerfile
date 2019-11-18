@@ -1,10 +1,10 @@
-FROM ubuntu:19.10
+FROM alpine:3.10.3
 
 WORKDIR /app
 
-RUN apt update \
-  && apt install --no-install-recommends --yes \
-    build-essential \
-    clang-format \
+RUN apk add --no-cache \
+    clang \
+    make \
+    gcc \
     git \
-  && rm -rf /var/lib/apt/lists/*
+    musl-dev
